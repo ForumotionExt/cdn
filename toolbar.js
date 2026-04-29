@@ -33,29 +33,122 @@
     moon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
   };
 
-  /* ── Culori grup — setate ca CSS variables, nu inline ── */
+  /* ── Culori grup ── */
   var gc    = '#' + (USER.groupcolor || '1B6AA7');
   var gcL   = CU ? CU.lighten(USER.groupcolor ? '#' + USER.groupcolor : '#1B6AA7', 55) : '#7ec8ff';
   var gcDim = CU ? CU.alphaBg(USER.groupcolor ? '#' + USER.groupcolor : '#1B6AA7', .18) : 'rgba(27,106,167,.18)';
 
-  /* ── Tipuri notificări — culorile sunt definite ca variabile CSS ── */
+  /* ── Tipuri notificări ── */
   var NOTIF_TYPES = {
     0:  { icon: IC.mail,    cssClass: 'notif-pm',      label: 'Mesaj privat'    },
     2:  { icon: IC.friend,  cssClass: 'notif-friend',  label: 'Cerere prieten'  },
-    4:  { icon: IC.friend,  cssClass: 'notif-friend',  label: 'Prieten nou'      },
+    4:  { icon: IC.friend,  cssClass: 'notif-friend',  label: 'Prieten nou'     },
     5:  { icon: IC.user,    cssClass: 'notif-pm',      label: 'Mesaj pe profil' },
     7:  { icon: IC.eye,     cssClass: 'notif-watch',   label: 'Subiect urmărit' },
-    8:  { icon: IC.mention, cssClass: 'notif-mention', label: 'Mențiune'         },
-    11: { icon: IC.like,    cssClass: 'notif-like',    label: 'Like'             },
-    14: { icon: IC.award,   cssClass: 'notif-award',   label: 'Premiu'           },
-    15: { icon: IC.eye,     cssClass: 'notif-watch',   label: 'Topic nou'        },
-    16: { icon: IC.eye,     cssClass: 'notif-watch',   label: 'Post nou'         },
+    8:  { icon: IC.mention, cssClass: 'notif-mention', label: 'Mențiune'        },
+    11: { icon: IC.like,    cssClass: 'notif-like',    label: 'Like'            },
+    14: { icon: IC.award,   cssClass: 'notif-award',   label: 'Premiu'          },
+    15: { icon: IC.eye,     cssClass: 'notif-watch',   label: 'Topic nou'       },
+    16: { icon: IC.eye,     cssClass: 'notif-watch',   label: 'Post nou'        },
   };
 
   function notifStyle(type) {
     return NOTIF_TYPES[type] || { icon: IC.bell, cssClass: 'notif-default', label: 'Notificare' };
   }
 
+  function createLink(href, text) {
+    var a = document.createElement('a');
+    a.href        = href;
+    a.textContent = text;
+    return a;
+  }
+
+  function compileNotifData(data) {
+    var t     = data.text || {};
+    var from  = t.from   || {};
+    var post  = t.post   || {};
+    var forum = t.forum  || {};
+    var award = t.award  || {};
+
+    return {
+      type:  t.type,
+      user:  from.name ? { id: from.id, name: from.name } : null,
+      topic: post.topic_id ? {
+        id:     post.topic_id,
+        title:  post.topic_title || post.topic_name || '',
+        slug:   post.topic_name  || '',
+        postId: post.post_id,
+        start:  post.start,
+      } : null,
+      forum: forum.forum_id ? {
+        id:    forum.forum_id,
+        name:  forum.forum_name,
+        title: forum.forum_title || forum.forum_name,
+      } : null,
+      award: award.award_notif || '',
+      msgId: t.msg_id,
+      url:   t.url || '#',
+      group: t.group || {},
+      tag:   t.tag   || '',
+      self:  t.self  || false,
+    };
+  }
+
+  function buildNotifContent(data) {
+    var d    = compileNotifData(data);
+    var frag = document.createDocumentFragment();
+
+    function txt(s) { frag.appendChild(document.createTextNode(s)); }
+
+    function appendUser() {
+      if (d.user) { frag.appendChild(createLink('/u' + d.user.id, d.user.name)); }
+      else { txt('Cineva'); }
+    }
+
+    function appendTopic() {
+      if (!d.topic) return;
+      var href = '/t' + d.topic.id +
+        (d.topic.start ? 'p' + d.topic.start : '') +
+        '-' + (d.topic.slug || '') + '#' + d.topic.postId;
+      frag.appendChild(createLink(href, d.topic.title));
+    }
+
+    function appendForum() {
+      if (!d.forum) return;
+      frag.appendChild(createLink('/' + encodeURIComponent(d.forum.name), d.forum.title));
+    }
+
+    function strong(text) {
+      var s = document.createElement('strong');
+      s.textContent = text;
+      frag.appendChild(s);
+    }
+
+    switch (d.type) {
+      case 0:  appendUser(); txt(' ți-a trimis un '); frag.appendChild(createLink('/privmsg?mode=view&p=' + d.msgId, 'mesaj privat')); break;
+      case 1:  appendUser(); txt(' a raportat un mesaj'); break;
+      case 2:  appendUser(); txt(' vrea să fie prieten cu tine'); break;
+      case 3:  appendUser(); txt(' a cerut să intre în grupul '); strong(d.group.name || ''); break;
+      case 4:  appendUser(); txt(' ți-a acceptat cererea de prietenie'); break;
+      case 5:  appendUser(); txt(' a lăsat un mesaj pe ' + (d.self ? 'profilul tău' : 'profilul lui')); break;
+      case 6:  txt('Ai primit o avertizare de la moderatori'); break;
+      case 7:  appendUser(); txt(' a postat în subiectul '); appendTopic(); break;
+      case 8:  appendUser(); txt(' te-a menționat în '); appendTopic(); break;
+      case 9:  appendUser(); txt(' a folosit hashtag-ul '); strong('#' + d.tag); break;
+      case 10: txt('Anunț nou în forumul tău'); break;
+      case 11: appendUser(); txt(' a dat like mesajului tău în '); appendTopic(); break;
+      case 12: appendUser(); txt(' a dat dislike mesajului tău în '); appendTopic(); break;
+      case 13: appendUser(); txt(' a creat subiectul '); appendTopic(); txt(' în '); appendForum(); break;
+      case 14: txt('Ai primit premiul: '); strong(d.award); break;
+      case 15: appendUser(); txt(' a creat subiectul '); appendTopic(); txt(' în '); appendForum(); break;
+      case 16: appendUser(); txt(' a postat în '); appendTopic(); break;
+      case 17: appendUser(); txt(' ți-a trimis o donație'); break;
+      default: txt(notifStyle(d.type).label);
+    }
+
+    return frag;
+  }
+  
   var _searchTimer = null;
   var BASE = location.protocol + '//' + window.location.hostname;
 
@@ -65,7 +158,11 @@
     if (!query || query.length < 2) { box.style.display = 'none'; return; }
 
     box.style.display = 'block';
-    box.innerHTML = '<div class="tb-search-loading">Se caută...</div>';
+    box.textContent   = '';
+    var loading = document.createElement('div');
+    loading.className   = 'tb-search-loading';
+    loading.textContent = 'Se caută...';
+    box.appendChild(loading);
 
     fetch(BASE + '/search?search_keywords=' + encodeURIComponent(query) + '&submit=true', {
       credentials: 'same-origin',
@@ -85,22 +182,51 @@
         results.push({ label: label, href: href });
       });
 
+      box.textContent = '';
+
       if (results.length === 0) {
-        box.innerHTML = '<div class="tb-search-empty">Niciun rezultat pentru <strong>' + U.escHtml(query) + '</strong></div>';
+        var empty = document.createElement('div');
+        empty.className = 'tb-search-empty';
+        empty.textContent = 'Niciun rezultat pentru ';
+        var em = document.createElement('strong');
+        em.textContent = query;
+        empty.appendChild(em);
+        box.appendChild(empty);
         return;
       }
 
-      var allHref = BASE + '/search?search_keywords=' + encodeURIComponent(query) + '&submit=true';
-      box.innerHTML = results.map(function (r) {
-        return '<a href="' + U.escAttr(r.href) + '" class="tb-search-item">' +
-          '<span class="tb-search-icon">' + IC.topics + '</span>' +
-          '<span>' + U.escHtml(r.label) + '</span>' +
-        '</a>';
-      }).join('') +
-      '<a href="' + U.escAttr(allHref) + '" class="tb-search-all">Vezi toate rezultatele →</a>';
+      var frag = document.createDocumentFragment();
+      results.forEach(function (r) {
+        var a = document.createElement('a');
+        a.href      = r.href;
+        a.className = 'tb-search-item';
+
+        var iconWrap = document.createElement('span');
+        iconWrap.className = 'tb-search-icon';
+        iconWrap.innerHTML = IC.topics; // SVG constant — safe
+
+        var labelSpan = document.createElement('span');
+        labelSpan.textContent = r.label;
+
+        a.appendChild(iconWrap);
+        a.appendChild(labelSpan);
+        frag.appendChild(a);
+      });
+
+      var seeAll = document.createElement('a');
+      seeAll.href        = BASE + '/search?search_keywords=' + encodeURIComponent(query) + '&submit=true';
+      seeAll.className   = 'tb-search-all';
+      seeAll.textContent = 'Vezi toate rezultatele →';
+      frag.appendChild(seeAll);
+
+      box.appendChild(frag);
     })
     .catch(function () {
-      box.innerHTML = '<div class="tb-search-empty">Eroare la căutare</div>';
+      box.textContent = '';
+      var err = document.createElement('div');
+      err.className   = 'tb-search-empty';
+      err.textContent = 'Eroare la căutare';
+      box.appendChild(err);
     });
   }
 
@@ -111,15 +237,15 @@
     localStorage.setItem('ips-theme', dark ? 'dark' : 'light');
     var btn = document.getElementById('tb-theme-btn');
     if (btn) {
-      btn.innerHTML = dark ? IC.sun : IC.moon;
+      btn.innerHTML = dark ? IC.sun : IC.moon; // SVG constants — safe
       btn.title     = dark ? 'Temă deschisă' : 'Temă închisă';
     }
   }
 
   function playNotifSound() {
     try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var osc = ctx.createOscillator();
+      var ctx  = new (window.AudioContext || window.webkitAudioContext)();
+      var osc  = ctx.createOscillator();
       var gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -133,59 +259,28 @@
   }
 
   var Toolbar = {
-    LIVE_NOTIF: 'tb-live-notif',
-    NOTIFICATIONS: 'tb-notifications',
-    NOTIF_LIST: 'tb-notif-list',
-    NOTIF_UNREAD: 'tb-badge-msg',
+    LIVE_NOTIF:    'tb-live-notif',
+    NOTIF_LIST:    'tb-notif-list',
+    NOTIF_UNREAD:  'tb-badge-msg',
+
     compileNotif: function (data) {
-      var t     = data.text || {};
-      var from  = t.from   || {};
-      var post  = t.post   || {};
-      var forum = t.forum  || {};
-      var award = t.award  || {};
-
-      var who = from.name
-        ? '<a href="/u' + from.id + '">' + U.escHtml(from.name) + '</a>'
-        : 'Cineva';
-      var topicTitle = post.topic_title || post.topic_name || '';
-      var topicHref  = post.topic_id
-        ? '/t' + post.topic_id + (post.start ? 'p' + post.start : '') + '-' + post.topic_name + '#' + post.post_id
-        : '#';
-      var topicLink  = topicTitle ? '<a href="' + topicHref + '">' + U.escHtml(topicTitle) + '</a>' : '';
-      var forumTitle = forum.forum_title || forum.forum_name || '';
-      var forumLink  = forum.forum_id
-        ? '<a href="/' + forum.forum_name + '">' + U.escHtml(forumTitle) + '</a>'
-        : U.escHtml(forumTitle);
-
-      switch (t.type) {
-        case 0:  return who + ' ți-a trimis un <a href="/privmsg?mode=view&p=' + t.msg_id + '">mesaj privat</a>';
-        case 1:  return who + ' a raportat un mesaj';
-        case 2:  return who + ' vrea să fie prieten cu tine';
-        case 3:  return who + ' a cerut să intre în grupul <strong>' + U.escHtml((t.group || {}).name || '') + '</strong>';
-        case 4:  return who + ' ți-a acceptat cererea de prietenie';
-        case 5:  return who + ' a lăsat un mesaj pe ' + (t.self ? 'profilul tău' : 'profilul lui');
-        case 6:  return 'Ai primit o avertizare de la moderatori';
-        case 7:  return who + ' a postat în subiectul ' + topicLink;
-        case 8:  return who + ' te-a menționat în ' + topicLink;
-        case 9:  return who + ' a folosit hashtag-ul <strong>#' + U.escHtml(t.tag || '') + '</strong>';
-        case 10: return 'Anunț nou în forumul tău';
-        case 11: return who + ' a dat like mesajului tău în ' + topicLink;
-        case 12: return who + ' a dat dislike mesajului tău în ' + topicLink;
-        case 13: return who + ' a creat subiectul ' + topicLink + ' în ' + forumLink;
-        case 14: return 'Ai primit premiul: ' + U.escHtml(award.award_notif || '');
-        case 15: return who + ' a creat subiectul ' + topicLink + ' în ' + forumLink;
-        case 16: return who + ' a postat în ' + topicLink;
-        case 17: return who + ' ți-a trimis o donație';
-        default: return notifStyle(t.type).label;
-      }
+      var tmp = document.createElement('div');
+      tmp.appendChild(buildNotifContent(data));
+      return tmp.innerHTML;
     },
 
     _alignNotifications: function () {
       var list = document.getElementById('tb-notif-list');
       if (!list) return;
       if (list.querySelectorAll('.tb-notif-item').length === 0) {
-        list.innerHTML =
-          '<div class="tb-panel-empty">' + IC.bell_off + '<span>Nicio notificare nouă</span></div>';
+        list.textContent = '';
+        var wrap = document.createElement('div');
+        wrap.className = 'tb-panel-empty';
+        wrap.innerHTML = IC.bell_off; // SVG constant — safe
+        var span = document.createElement('span');
+        span.textContent = 'Nicio notificare nouă';
+        wrap.appendChild(span);
+        list.appendChild(wrap);
       }
     },
 
@@ -236,32 +331,69 @@
       var unreadPms = pms.filter(function (m) { return !m.read; }).length;
       Toolbar._setBadge('tb-badge-msg', unreadPms);
 
+      list.textContent = '';
+
       if (pms.length === 0) {
-        list.innerHTML = '<div class="tb-panel-empty">' + IC.mail + '<span>Niciun mesaj nou</span></div>';
+        var emptyWrap = document.createElement('div');
+        emptyWrap.className = 'tb-panel-empty';
+        emptyWrap.innerHTML = IC.mail; // SVG constant — safe
+        var emptySpan = document.createElement('span');
+        emptySpan.textContent = 'Niciun mesaj nou';
+        emptyWrap.appendChild(emptySpan);
+        list.appendChild(emptyWrap);
         return;
       }
 
-      list.innerHTML = pms.map(function (item) {
-        var t       = item.text || {};
-        var from    = t.from   || {};
-        var who     = from.name || 'Cineva';
-        var href    = t.msg_id ? '/privmsg?mode=view&p=' + t.msg_id : '/privmsg?folder=inbox';
-        var unread  = !item.read ? ' unread' : '';
-        var timeStr = U.timeAgo(t.time || item.time || 0);
-        var preview = U.escHtml(t.subject || t.topic_title || t.preview || 'Mesaj privat');
+      var frag = document.createDocumentFragment();
+      pms.forEach(function (item) {
+        var t      = item.text || {};
+        var from   = t.from   || {};
+        var who    = from.name || 'Cineva';
+        var href   = t.msg_id ? '/privmsg?mode=view&p=' + t.msg_id : '/privmsg?folder=inbox';
+        var unread = !item.read;
 
-        return '<a href="' + U.escAttr(href) + '" class="tb-msg-item' + unread + '">' +
-          '<div class="tb-msg-av">' + U.initials(who) + '</div>' +
-          '<div class="tb-msg-body">' +
-            '<div class="tb-msg-from">' + U.escHtml(who) + '</div>' +
-            '<div class="tb-msg-preview">' + preview + '</div>' +
-          '</div>' +
-          '<div class="tb-msg-meta">' +
-            '<span>' + timeStr + '</span>' +
-            (unread ? '<div class="tb-msg-unread-dot"></div>' : '') +
-          '</div>' +
-        '</a>';
-      }).join('');
+        var a = document.createElement('a');
+        a.href      = href;
+        a.className = 'tb-msg-item' + (unread ? ' unread' : '');
+
+        var av = document.createElement('div');
+        av.className   = 'tb-msg-av';
+        av.textContent = U.initials(who);
+
+        var body = document.createElement('div');
+        body.className = 'tb-msg-body';
+
+        var fromEl = document.createElement('div');
+        fromEl.className   = 'tb-msg-from';
+        fromEl.textContent = who;
+
+        var preview = document.createElement('div');
+        preview.className   = 'tb-msg-preview';
+        preview.textContent = t.subject || t.topic_title || t.preview || 'Mesaj privat';
+
+        body.appendChild(fromEl);
+        body.appendChild(preview);
+
+        var meta = document.createElement('div');
+        meta.className = 'tb-msg-meta';
+
+        var timeSpan = document.createElement('span');
+        timeSpan.textContent = U.timeAgo(t.time || item.time || 0);
+        meta.appendChild(timeSpan);
+
+        if (unread) {
+          var dot = document.createElement('div');
+          dot.className = 'tb-msg-unread-dot';
+          meta.appendChild(dot);
+        }
+
+        a.appendChild(av);
+        a.appendChild(body);
+        a.appendChild(meta);
+        frag.appendChild(a);
+      });
+
+      list.appendChild(frag);
     },
 
     _setBadge: function (id, count) {
@@ -280,39 +412,71 @@
         el.style.display = 'none';
       }
     },
-
+    
     _addItem: function (pos, data) {
       if (data.text && data.text.type === 0) return;
+
       var list = document.getElementById('tb-notif-list');
       if (!list) return;
+
       var empty = list.querySelector('.tb-panel-empty');
       if (empty) empty.remove();
 
       var t  = data.text || {};
       var ns = notifStyle(t.type);
-      var iconStyle = 'background:var(--' + ns.cssClass + '-bg,var(--notif-default-bg));color:var(--' + ns.cssClass + '-col,var(--notif-default-col))';
-      var el = document.createElement('a');
-      
-      el.href      = t.url || '#';
-      el.className = 'tb-notif-item' + (data.read ? '' : ' unread');
-      el.id        = 'tb-n' + t.id;
-      el.setAttribute('data-id', t.id);
-      el.innerHTML =
-        '<div class="tb-notif-icon" style="' + iconStyle + '">' + ns.icon + '</div>' +
-        '<div class="tb-notif-body">' +
-          '<div class="tb-notif-text">' + Toolbar.compileNotif(data) + '</div>' +
-          '<span class="tb-notif-time">' + U.timeAgo(t.time || data.time || 0) || (t.time || data.time) + '</span>' +
-        '</div>' +
-        '<button class="tb-notif-del" title="Șterge">' + IC.trash + '</button>';
 
-      el.querySelector('.tb-notif-del').addEventListener('click', function (e) {
-        e.preventDefault(); e.stopPropagation();
+      /* Container: <div role="button"> în loc de <a> pentru a evita <a> în <a> */
+      var el = document.createElement('div');
+      el.className = 'tb-notif-item' + (data.read ? '' : ' unread');
+      el.dataset.id = t.id;
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+
+      el.addEventListener('click', function () { window.location.href = t.url || '#'; });
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = t.url || '#'; }
+      });
+
+      /* Icon */
+      var icon = document.createElement('div');
+      icon.className        = 'tb-notif-icon';
+      icon.style.background = 'var(--' + ns.cssClass + '-bg,var(--notif-default-bg))';
+      icon.style.color      = 'var(--' + ns.cssClass + '-col,var(--notif-default-col))';
+      icon.innerHTML        = ns.icon; // SVG constant — safe
+
+      /* Body */
+      var body = document.createElement('div');
+      body.className = 'tb-notif-body';
+
+      var textEl = document.createElement('div');
+      textEl.className = 'tb-notif-text';
+      textEl.appendChild(buildNotifContent(data)); // ✅ fără innerHTML
+
+      var timeEl = document.createElement('span');
+      timeEl.className   = 'tb-notif-time';
+      timeEl.textContent = U.timeAgo(t.time || data.time || 0) || String(t.time || data.time || '');
+
+      body.appendChild(textEl);
+      body.appendChild(timeEl);
+
+      /* Buton ștergere */
+      var btn = document.createElement('button');
+      btn.className = 'tb-notif-del';
+      btn.title     = 'Șterge';
+      btn.innerHTML = IC.trash; // SVG constant — safe
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
         var items = list.querySelectorAll('.tb-notif-item');
         var idx   = Array.prototype.indexOf.call(items, el);
         if (window.FA && FA.Notification && typeof FA.Notification.delItem === 'function') {
           FA.Notification.delItem({ index: idx });
         }
       });
+
+      el.appendChild(icon);
+      el.appendChild(body);
+      el.appendChild(btn);
 
       var ref = list.querySelectorAll('.tb-notif-item')[pos - 1] || null;
       el.style.opacity = '0';
@@ -341,16 +505,16 @@
     },
   };
 
+  /* ── Patch pe window.Toolbar existent ── */
   var _patchMethods = [
-    'LIVE_NOTIF', 'NOTIFICATIONS', 'NOTIF_LIST', 'NOTIF_UNREAD', 'refresh', 'compileNotif',
-    '_alignNotifications', '_setBadge',
-    '_addItem', '_readItem', '_delItem', '_renderPmList',
+    'LIVE_NOTIF', 'NOTIF_LIST', 'NOTIF_UNREAD', 'refresh', 'compileNotif',
+    '_alignNotifications', '_setBadge', '_addItem', '_readItem', '_delItem', '_renderPmList',
   ];
 
   function _applyPatch() {
     if (window.Toolbar && window.Toolbar !== Toolbar) {
       _patchMethods.forEach(function (key) { window.Toolbar[key] = Toolbar[key]; });
-      console.log('%c Toolbar IPS has been patch succesufully', 'color: orange; font-size: 10; font-family: monospace;');
+      console.log('%c Toolbar IPS has been patched successfully', 'color: orange; font-size: 10px; font-family: monospace;');
     } else if (!window.Toolbar) {
       window.Toolbar = Toolbar;
     }
@@ -360,32 +524,45 @@
 
   function buildToolbar() {
     if (!document.body) return;
-    console.log('%c IPS Toolbar has been registred.', 'color: skyblue;font-size:10px;font-family: monospace;');
+    console.log('%c IPS Toolbar has been registered.', 'color: skyblue; font-size: 10px; font-family: monospace;');
+
     document.documentElement.style.setProperty('--gc',       gc);
     document.documentElement.style.setProperty('--gc-light', gcL);
     document.documentElement.style.setProperty('--gc-dim',   gcDim);
     applyTheme(_darkMode);
 
-    /* Navbar */
+    /* Navbar items */
     var navItems = [];
     document.querySelectorAll('#submenu ul li a').forEach(function (a) {
-      var label    = a.innerText.trim();
-      var labelN   = U.norm(label);
-      var href     = a.getAttribute('href') || '';
+      var label  = a.innerText.trim();
+      var labelN = U.norm(label);
+      var href   = a.getAttribute('href') || '';
       if (HIDE_NAV_LABELS.indexOf(labelN) !== -1) return;
       if (HIDE_NAV_HREF_PATTERNS.some(function (p) { return href.indexOf(p) !== -1; })) return;
       navItems.push({ label: RENAME_NAV[labelN] || label, href: href });
     });
 
     var currentPath = window.location.pathname + window.location.search;
-    var navHTML = navItems.map(function (item) {
-      var active = currentPath === item.href ? ' class="active"' : '';
-      return '<a href="' + U.escAttr(item.href) + '"' + active + '>' + U.escHtml(item.label) + '</a>';
-    }).join('');
 
-    function badge(id, n) {
-      return '<span class="tb-badge" id="' + id + '"' + (n > 0 ? '' : ' style="display:none"') + '>' +
-        (n > 99 ? '99+' : n) + '</span>';
+    function buildNavLinks(items) {
+      var frag = document.createDocumentFragment();
+      items.forEach(function (item) {
+        var a = document.createElement('a');
+        a.href        = item.href;
+        a.textContent = item.label;
+        if (currentPath === item.href) a.className = 'active';
+        frag.appendChild(a);
+      });
+      return frag;
+    }
+
+    function makeBadge(id, n) {
+      var span = document.createElement('span');
+      span.className = 'tb-badge';
+      span.id        = id;
+      if (n > 0) { span.textContent = n > 99 ? '99+' : String(n); }
+      else        { span.style.display = 'none'; }
+      return span;
     }
 
     var avContent = USER.avatar_link && !USER.avatar_link.includes('pp-blank-thumb')
@@ -396,136 +573,253 @@
     var forumHref   = forumAnchor ? forumAnchor.getAttribute('href') : '/';
     var forumName   = forumAnchor ? forumAnchor.innerText.trim() : (USER.site_name || 'Forum');
 
+    /* ── Toolbar element ── */
     var tb = document.createElement('div');
     tb.id = 'ips-toolbar';
     tb.setAttribute('role', 'navigation');
     tb.setAttribute('aria-label', 'Bara principală');
-    tb.innerHTML =
-      '<a class="tb-logo" href="' + U.escAttr(forumHref) + '">' + U.escHtml(forumName) + '<span></span></a>' +
-      '<div class="tb-divider"></div>' +
-      '<nav class="tb-nav" aria-label="Navigare">' + navHTML + '</nav>' +
-      '<div class="tb-search-wrap">' +
-        '<div class="tb-search-inner">' +
-          '<span class="tb-search-icon-svg">' + IC.search + '</span>' +
-          '<input type="search" id="tb-search-input" placeholder="Caută..." autocomplete="new-password" aria-label="Căutare rapidă" spellcheck="false" />' +
-        '</div>' +
-        '<div id="tb-search-results" class="tb-search-results" style="display:none"></div>' +
-      '</div>' +
-      '<button class="tb-hamburger" id="tb-hamburger" aria-label="Meniu" aria-expanded="false" aria-controls="tb-mobile-menu">' +
-        '<div class="tb-ham-icon"><span></span><span></span><span></span></div>' +
-      '</button>' +
-      '<div class="tb-right">' +
-        '<button class="tb-icon-btn" id="tb-theme-btn" title="' + (_darkMode ? 'Temă deschisă' : 'Temă închisă') + '">' +
-          (_darkMode ? IC.sun : IC.moon) +
-        '</button>' +
-        (USER.session_logged_in
-          ? '<div class="tb-points">' + IC.star + '<strong>' + U.escHtml(String(USER.user_points || 0)) + '</strong><span>pts</span></div>' +
-            '<button class="tb-icon-btn" id="tb-btn-notif" title="Notificări" aria-expanded="false">' +
-              IC.bell + badge('tb-badge-notif', USER.notifications || 0) +
-            '</button>' +
-            '<button class="tb-icon-btn" id="tb-btn-msg" title="Mesaje private" aria-expanded="false">' +
-              IC.mail + badge('tb-badge-msg', USER.user_nb_privmsg || 0) +
-            '</button>' +
-            '<div class="tb-divider"></div>' +
-            '<div class="tb-user-wrap">' +
-              '<div class="tb-user" id="tb-btn-user" role="button" tabindex="0" aria-expanded="false" aria-haspopup="true">' +
-                '<div class="tb-user-av">' + avContent + '</div>' +
-                '<span class="tb-user-name">' + U.escHtml(USER.username || '') + '</span>' +
-                IC.caret +
-              '</div>' +
-            '</div>'
-          : '<div class="tb-divider"></div>' +
-            '<button class="tb-btn-login" id="tb-btn-login" aria-expanded="false">Autentificare</button>' +
-            '<a class="tb-btn-register" href="' + BASE + '/register">Înregistrare</a>'
-        ) +
-      '</div>';
 
+    var logoA = document.createElement('a');
+    logoA.className   = 'tb-logo';
+    logoA.href        = forumHref;
+    logoA.textContent = forumName;
+    logoA.appendChild(document.createElement('span'));
+    tb.appendChild(logoA);
+
+    tb.appendChild(Object.assign(document.createElement('div'), { className: 'tb-divider' }));
+
+    var nav = document.createElement('nav');
+    nav.className = 'tb-nav';
+    nav.setAttribute('aria-label', 'Navigare');
+    nav.appendChild(buildNavLinks(navItems));
+    tb.appendChild(nav);
+
+    /* Search */
+    var searchWrap  = document.createElement('div');
+    searchWrap.className = 'tb-search-wrap';
+    var searchInner = document.createElement('div');
+    searchInner.className = 'tb-search-inner';
+    var searchIconSvg = document.createElement('span');
+    searchIconSvg.className = 'tb-search-icon-svg';
+    searchIconSvg.innerHTML = IC.search; // SVG constant — safe
+    var searchInput = document.createElement('input');
+    searchInput.type         = 'search';
+    searchInput.id           = 'tb-search-input';
+    searchInput.placeholder  = 'Caută...';
+    searchInput.autocomplete = 'new-password';
+    searchInput.setAttribute('aria-label', 'Căutare rapidă');
+    searchInput.spellcheck   = false;
+    var searchBox = document.createElement('div');
+    searchBox.id            = 'tb-search-results';
+    searchBox.className     = 'tb-search-results';
+    searchBox.style.display = 'none';
+    searchInner.appendChild(searchIconSvg);
+    searchInner.appendChild(searchInput);
+    searchWrap.appendChild(searchInner);
+    searchWrap.appendChild(searchBox);
+    tb.appendChild(searchWrap);
+
+    /* Hamburger */
+    var hamBtn = document.createElement('button');
+    hamBtn.className = 'tb-hamburger';
+    hamBtn.id        = 'tb-hamburger';
+    hamBtn.setAttribute('aria-label', 'Meniu');
+    hamBtn.setAttribute('aria-expanded', 'false');
+    hamBtn.setAttribute('aria-controls', 'tb-mobile-menu');
+    var hamIcon = document.createElement('div');
+    hamIcon.className = 'tb-ham-icon';
+    for (var h = 0; h < 3; h++) hamIcon.appendChild(document.createElement('span'));
+    hamBtn.appendChild(hamIcon);
+    tb.appendChild(hamBtn);
+
+    /* Right */
+    var right = document.createElement('div');
+    right.className = 'tb-right';
+
+    var themeBtn = document.createElement('button');
+    themeBtn.className = 'tb-icon-btn';
+    themeBtn.id        = 'tb-theme-btn';
+    themeBtn.title     = _darkMode ? 'Temă deschisă' : 'Temă închisă';
+    themeBtn.innerHTML = _darkMode ? IC.sun : IC.moon; // SVG constants — safe
+    right.appendChild(themeBtn);
+
+    if (USER.session_logged_in) {
+      var pointsEl = document.createElement('div');
+      pointsEl.className = 'tb-points';
+      pointsEl.innerHTML = IC.star; // SVG constant — safe
+      var pointsStrong = document.createElement('strong');
+      pointsStrong.textContent = String(USER.user_points || 0);
+      var pointsSpan = document.createElement('span');
+      pointsSpan.textContent = 'pts';
+      pointsEl.appendChild(pointsStrong);
+      pointsEl.appendChild(pointsSpan);
+      right.appendChild(pointsEl);
+
+      var notifBtn = document.createElement('button');
+      notifBtn.className = 'tb-icon-btn';
+      notifBtn.id        = 'tb-btn-notif';
+      notifBtn.title     = 'Notificări';
+      notifBtn.setAttribute('aria-expanded', 'false');
+      notifBtn.innerHTML = IC.bell; // SVG constant — safe
+      // USER.notifications este un flag (0/1), nu un count — badge-ul e populat de Toolbar.refresh()
+      notifBtn.appendChild(makeBadge('tb-badge-notif', 0));
+      right.appendChild(notifBtn);
+
+      var msgBtn = document.createElement('button');
+      msgBtn.className = 'tb-icon-btn';
+      msgBtn.id        = 'tb-btn-msg';
+      msgBtn.title     = 'Mesaje private';
+      msgBtn.setAttribute('aria-expanded', 'false');
+      msgBtn.innerHTML = IC.mail; // SVG constant — safe
+      // USER.user_nb_privmsg nu e un count de unread — badge-ul e populat de _renderPmList()
+      msgBtn.appendChild(makeBadge('tb-badge-msg', 0));
+      right.appendChild(msgBtn);
+
+      right.appendChild(Object.assign(document.createElement('div'), { className: 'tb-divider' }));
+
+      var userWrap = document.createElement('div');
+      userWrap.className = 'tb-user-wrap';
+      var userEl = document.createElement('div');
+      userEl.className = 'tb-user';
+      userEl.id        = 'tb-btn-user';
+      userEl.setAttribute('role', 'button');
+      userEl.setAttribute('tabindex', '0');
+      userEl.setAttribute('aria-expanded', 'false');
+      userEl.setAttribute('aria-haspopup', 'true');
+      var userAv = document.createElement('div');
+      userAv.className = 'tb-user-av';
+      userAv.innerHTML = avContent; // controlled: either img tag or text initials
+      var userNameSpan = document.createElement('span');
+      userNameSpan.className   = 'tb-user-name';
+      userNameSpan.textContent = USER.username || '';
+      userEl.appendChild(userAv);
+      userEl.appendChild(userNameSpan);
+      userEl.innerHTML += IC.caret; // SVG constant appended last — safe
+      userWrap.appendChild(userEl);
+      right.appendChild(userWrap);
+    } else {
+      right.appendChild(Object.assign(document.createElement('div'), { className: 'tb-divider' }));
+      var loginBtn = document.createElement('button');
+      loginBtn.className   = 'tb-btn-login';
+      loginBtn.id          = 'tb-btn-login';
+      loginBtn.setAttribute('aria-expanded', 'false');
+      loginBtn.textContent = 'Autentificare';
+      right.appendChild(loginBtn);
+      var regA = document.createElement('a');
+      regA.className   = 'tb-btn-register';
+      regA.href        = BASE + '/register';
+      regA.textContent = 'Înregistrare';
+      right.appendChild(regA);
+    }
+
+    tb.appendChild(right);
     document.body.prepend(tb);
 
     var cont = document.getElementById('container');
     if (cont) cont.style.paddingTop = '56px';
 
-    /* Mobile menu */
+    /* ── Mobile menu ── */
     var mobileMenu = document.createElement('div');
     mobileMenu.id = 'tb-mobile-menu';
     mobileMenu.setAttribute('role', 'navigation');
     mobileMenu.setAttribute('aria-label', 'Meniu mobil');
 
-    var mobileNavHTML = navItems.map(function (item) {
-      var active = currentPath === item.href ? ' active' : '';
-      return '<a href="' + U.escAttr(item.href) + '" class="' + active + '">' + U.escHtml(item.label) + '</a>';
-    }).join('');
+    var mobSearchWrap  = document.createElement('div');
+    mobSearchWrap.className = 'tb-mobile-search';
+    var mobSearchInner = document.createElement('div');
+    mobSearchInner.className = 'tb-search-inner';
+    var mobSearchIcon = document.createElement('span');
+    mobSearchIcon.className = 'tb-search-icon-svg';
+    mobSearchIcon.innerHTML = IC.search; // SVG constant — safe
+    var mobSearchInput = document.createElement('input');
+    mobSearchInput.type         = 'search';
+    mobSearchInput.id           = 'tb-search-input-mob';
+    mobSearchInput.placeholder  = 'Caută...';
+    mobSearchInput.autocomplete = 'new-password';
+    mobSearchInput.spellcheck   = false;
+    var mobSearchBox = document.createElement('div');
+    mobSearchBox.id            = 'tb-search-results-mob';
+    mobSearchBox.className     = 'tb-search-results';
+    mobSearchBox.style.display = 'none';
+    mobSearchInner.appendChild(mobSearchIcon);
+    mobSearchInner.appendChild(mobSearchInput);
+    mobSearchWrap.appendChild(mobSearchInner);
+    mobSearchWrap.appendChild(mobSearchBox);
+    mobileMenu.appendChild(mobSearchWrap);
 
-    var mobileUserLinks = USER.session_logged_in
-      ? '<div class="tb-mobile-sep"></div>' +
-        '<a href="' + BASE + '/u' + USER.user_id + '">Profilul meu</a>' +
-        '<a href="' + BASE + '/privmsg?folder=inbox">Mesaje private</a>' +
-        '<a href="' + BASE + '/profile?mode=editprofile&page_profil=preferences">Setări cont</a>' +
-        '<a href="' + BASE + '/login?logout=1" style="color:var(--ips-danger-item)">Deconectare</a>'
-      : '<div class="tb-mobile-sep"></div>' +
-        '<a href="' + BASE + '/register">Înregistrare</a>';
+    mobileMenu.appendChild(Object.assign(document.createElement('div'), { className: 'tb-mobile-sep' }));
 
-    mobileMenu.innerHTML =
-      '<div class="tb-mobile-search">' +
-        '<div class="tb-search-inner">' +
-          '<span class="tb-search-icon-svg">' + IC.search + '</span>' +
-          '<input type="search" id="tb-search-input-mob" placeholder="Caută..." autocomplete="new-password" spellcheck="false" />' +
-        '</div>' +
-        '<div id="tb-search-results-mob" class="tb-search-results" style="display:none"></div>' +
-      '</div>' +
-      '<div class="tb-mobile-sep"></div>' +
-      '<nav class="tb-mobile-nav">' + mobileNavHTML + mobileUserLinks + '</nav>';
+    var mobileNav = document.createElement('nav');
+    mobileNav.className = 'tb-mobile-nav';
+    mobileNav.appendChild(buildNavLinks(navItems));
+    mobileNav.appendChild(Object.assign(document.createElement('div'), { className: 'tb-mobile-sep' }));
 
+    if (USER.session_logged_in) {
+      [
+        { href: BASE + '/u' + USER.user_id,                                  label: 'Profilul meu'   },
+        { href: BASE + '/privmsg?folder=inbox',                              label: 'Mesaje private'  },
+        { href: BASE + '/profile?mode=editprofile&page_profil=preferences',  label: 'Setări cont'    },
+        { href: BASE + '/login?logout=1',                                    label: 'Deconectare', danger: true },
+      ].forEach(function (item) {
+        var a = document.createElement('a');
+        a.href        = item.href;
+        a.textContent = item.label;
+        if (item.danger) a.style.color = 'var(--ips-danger-item)';
+        mobileNav.appendChild(a);
+      });
+    } else {
+      var regMob = document.createElement('a');
+      regMob.href        = BASE + '/register';
+      regMob.textContent = 'Înregistrare';
+      mobileNav.appendChild(regMob);
+    }
+
+    mobileMenu.appendChild(mobileNav);
     document.body.appendChild(mobileMenu);
 
-    /* Hamburger */
-    var hamBtn = document.getElementById('tb-hamburger');
-    if (hamBtn) {
-      hamBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var isOpen = mobileMenu.classList.contains('open');
-        if (isOpen) {
-          mobileMenu.classList.remove('open');
-          hamBtn.classList.remove('open');
-          hamBtn.setAttribute('aria-expanded', 'false');
-        } else {
-          closeAll();
-          mobileMenu.classList.add('open');
-          hamBtn.classList.add('open');
-          hamBtn.setAttribute('aria-expanded', 'true');
-        }
-      });
-    }
+    /* Hamburger logic */
+    hamBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = mobileMenu.classList.contains('open');
+      if (isOpen) {
+        mobileMenu.classList.remove('open');
+        hamBtn.classList.remove('open');
+        hamBtn.setAttribute('aria-expanded', 'false');
+      } else {
+        closeAll();
+        mobileMenu.classList.add('open');
+        hamBtn.classList.add('open');
+        hamBtn.setAttribute('aria-expanded', 'true');
+      }
+    });
 
     document.addEventListener('click', function (e) {
       if (!mobileMenu.contains(e.target) && e.target !== hamBtn && !hamBtn.contains(e.target)) {
         mobileMenu.classList.remove('open');
-        if (hamBtn) { hamBtn.classList.remove('open'); hamBtn.setAttribute('aria-expanded','false'); }
+        hamBtn.classList.remove('open');
+        hamBtn.setAttribute('aria-expanded', 'false');
       }
     });
 
     /* Mobile search */
-    var searchMob    = document.getElementById('tb-search-input-mob');
-    var searchBoxMob = document.getElementById('tb-search-results-mob');
-    if (searchMob && searchBoxMob) {
-      var _searchTimerMob = null;
-      searchMob.addEventListener('input', function () {
-        var q = searchMob.value.trim();
-        clearTimeout(_searchTimerMob);
-        if (q.length < 2) { searchBoxMob.style.display = 'none'; return; }
-        _searchTimerMob = setTimeout(function () { doSearch(q, 'tb-search-results-mob'); }, 400);
-      });
-      searchMob.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { searchBoxMob.style.display = 'none'; searchMob.value = ''; }
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          window.location.href = BASE + '/search?search_keywords=' + encodeURIComponent(searchMob.value.trim()) + '&submit=true';
-        }
-      });
-    }
+    var _searchTimerMob = null;
+    mobSearchInput.addEventListener('input', function () {
+      var q = mobSearchInput.value.trim();
+      clearTimeout(_searchTimerMob);
+      if (q.length < 2) { mobSearchBox.style.display = 'none'; return; }
+      _searchTimerMob = setTimeout(function () { doSearch(q, 'tb-search-results-mob'); }, 400);
+    });
+    mobSearchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { mobSearchBox.style.display = 'none'; mobSearchInput.value = ''; }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.location.href = BASE + '/search?search_keywords=' + encodeURIComponent(mobSearchInput.value.trim()) + '&submit=true';
+      }
+    });
 
-    /* Login dropdown */
+    /* ── Login dropdown ── */
     if (!USER.session_logged_in) {
+      /* Login form kept as innerHTML — no user data involved, only static URLs */
       var ddLogin = document.createElement('div');
       ddLogin.id        = 'tb-dd-login';
       ddLogin.className = 'tb-dropdown tb-login-panel';
@@ -550,77 +844,150 @@
       document.body.appendChild(ddLogin);
     }
 
-    /* Notif dropdown */
+    /* ── Notif dropdown ── */
     var ddNotif = document.createElement('div');
     ddNotif.id        = 'tb-dd-notif';
     ddNotif.className = 'tb-dropdown tb-panel';
     ddNotif.setAttribute('role', 'region');
     ddNotif.setAttribute('aria-label', 'Notificări');
-    ddNotif.innerHTML =
-      '<div class="tb-panel-head"><h3>Notificări</h3><a href="#" id="tb-notif-mark-read">Marchează citite</a></div>' +
-      '<div class="tb-panel-list" id="tb-notif-list">' +
-        '<div class="tb-panel-empty">' + IC.bell_off + '<span>Se încarcă...</span></div>' +
-      '</div>' +
-      '<div class="tb-panel-footer"><a href="/forum/index.php?app=core&module=global&section=notifications">Vezi toate notificările</a></div>';
+
+    var notifHead = document.createElement('div');
+    notifHead.className = 'tb-panel-head';
+    var notifH3 = document.createElement('h3');
+    notifH3.textContent = 'Notificări';
+    var notifMarkRead = document.createElement('a');
+    notifMarkRead.href        = '#';
+    notifMarkRead.id          = 'tb-notif-mark-read';
+    notifMarkRead.textContent = 'Marchează citite';
+    notifHead.appendChild(notifH3);
+    notifHead.appendChild(notifMarkRead);
+
+    var notifList = document.createElement('div');
+    notifList.className = 'tb-panel-list';
+    notifList.id        = 'tb-notif-list';
+    var notifLoading = document.createElement('div');
+    notifLoading.className = 'tb-panel-empty';
+    notifLoading.innerHTML = IC.bell_off; // SVG constant — safe
+    var notifLoadSpan = document.createElement('span');
+    notifLoadSpan.textContent = 'Se încarcă...';
+    notifLoading.appendChild(notifLoadSpan);
+    notifList.appendChild(notifLoading);
+
+    var notifFooter = document.createElement('div');
+    notifFooter.className = 'tb-panel-footer';
+    var notifAllA = document.createElement('a');
+    notifAllA.href        = '/forum/index.php?app=core&module=global&section=notifications';
+    notifAllA.textContent = 'Vezi toate notificările';
+    notifFooter.appendChild(notifAllA);
+
+    ddNotif.appendChild(notifHead);
+    ddNotif.appendChild(notifList);
+    ddNotif.appendChild(notifFooter);
     document.body.appendChild(ddNotif);
 
-    /* Msg dropdown */
+    /* ── Msg dropdown ── */
     var ddMsg = document.createElement('div');
     ddMsg.id        = 'tb-dd-msg';
     ddMsg.className = 'tb-dropdown tb-panel';
     ddMsg.setAttribute('role', 'region');
     ddMsg.setAttribute('aria-label', 'Mesaje private');
-    ddMsg.innerHTML =
-      '<div class="tb-panel-head"><h3>Mesaje private</h3><a href="/privmsg?mode=compose">Mesaj nou</a></div>' +
-      '<div class="tb-panel-list" id="tb-msg-list">' +
-        '<div class="tb-panel-empty">' + IC.mail + '<span>Se încarcă...</span></div>' +
-      '</div>' +
-      '<div class="tb-panel-footer"><a href="/privmsg?folder=inbox">Vezi toate mesajele</a></div>';
+
+    var msgHead = document.createElement('div');
+    msgHead.className = 'tb-panel-head';
+    var msgH3 = document.createElement('h3');
+    msgH3.textContent = 'Mesaje private';
+    var msgNewA = document.createElement('a');
+    msgNewA.href        = '/privmsg?mode=compose';
+    msgNewA.textContent = 'Mesaj nou';
+    msgHead.appendChild(msgH3);
+    msgHead.appendChild(msgNewA);
+
+    var msgList = document.createElement('div');
+    msgList.className = 'tb-panel-list';
+    msgList.id        = 'tb-msg-list';
+    var msgLoading = document.createElement('div');
+    msgLoading.className = 'tb-panel-empty';
+    msgLoading.innerHTML = IC.mail; // SVG constant — safe
+    var msgLoadSpan = document.createElement('span');
+    msgLoadSpan.textContent = 'Se încarcă...';
+    msgLoading.appendChild(msgLoadSpan);
+    msgList.appendChild(msgLoading);
+
+    var msgFooter = document.createElement('div');
+    msgFooter.className = 'tb-panel-footer';
+    var msgAllA = document.createElement('a');
+    msgAllA.href        = '/privmsg?folder=inbox';
+    msgAllA.textContent = 'Vezi toate mesajele';
+    msgFooter.appendChild(msgAllA);
+
+    ddMsg.appendChild(msgHead);
+    ddMsg.appendChild(msgList);
+    ddMsg.appendChild(msgFooter);
     document.body.appendChild(ddMsg);
 
-    /* User dropdown */
+    /* ── User dropdown ── */
     if (USER.session_logged_in) {
-      var isAdmin  = String(USER.user_level) === '1';
-      var privmsgBadge = USER.user_nb_privmsg > 0
-        ? ' <span style="margin-left:6px;font-size:10px;background:var(--gc);color:#fff;padding:1px 6px;border-radius:10px">' + USER.user_nb_privmsg + '</span>'
-        : '';
+      var isAdmin = String(USER.user_level) === '1';
 
       var ddUser = document.createElement('div');
       ddUser.id        = 'tb-user-dropdown';
       ddUser.className = 'tb-dropdown';
       ddUser.setAttribute('role', 'menu');
-      ddUser.innerHTML =
-        '<div class="tb-dd-header">' +
-          '<div class="name">' + U.escHtml(USER.username || '') + '</div>' +
-          '<div class="meta">' + U.escHtml(String(USER.user_posts || 0)) + ' mesaje · ' + U.escHtml(String(USER.user_points || 0)) + ' puncte</div>' +
-        '</div>' +
-        '<a href="' + BASE + '/u' + USER.user_id + '" class="tb-dd-item" role="menuitem">' + IC.user + '<span>Profilul meu</span></a>' +
-        '<a href="' + BASE + '/privmsg?folder=inbox" class="tb-dd-item" role="menuitem">' + IC.mail + '<span>Mesaje private' + privmsgBadge + '</span></a>' +
-        '<a href="' + BASE + '/sta/u' + USER.user_id + '" class="tb-dd-item" role="menuitem">' + IC.topics + '<span>Topicurile mele</span></a>' +
-        '<a href="' + BASE + '/u' + USER.user_id + '?view=reputation" class="tb-dd-item" role="menuitem">' + IC.rep + '<span>Reputația mea</span></a>' +
-        (isAdmin ? '<a href="' + BASE + '/admin" class="tb-dd-item" role="menuitem">' + IC.shield + '<span>Panou administrare</span></a>' : '') +
-        '<a href="' + BASE + '/profile?mode=editprofile&page_profil=preferences" class="tb-dd-item" role="menuitem">' + IC.settings + '<span>Setări cont</span></a>' +
-        '<div class="tb-dd-sep"></div>' +
-        '<a href="' + BASE + '/login?logout=1" class="tb-dd-item danger" role="menuitem">' + IC.logout + '<span>Deconectare</span></a>';
+
+      var ddHeader = document.createElement('div');
+      ddHeader.className = 'tb-dd-header';
+      var ddName = document.createElement('div');
+      ddName.className   = 'name';
+      ddName.textContent = USER.username || '';
+      var ddMeta = document.createElement('div');
+      ddMeta.className   = 'meta';
+      ddMeta.textContent = String(USER.user_posts || 0) + ' mesaje · ' + String(USER.user_points || 0) + ' puncte';
+      ddHeader.appendChild(ddName);
+      ddHeader.appendChild(ddMeta);
+      ddUser.appendChild(ddHeader);
+
+      function menuItem(href, iconSvg, label, extraClass) {
+        var a = document.createElement('a');
+        a.href      = href;
+        a.className = 'tb-dd-item' + (extraClass ? ' ' + extraClass : '');
+        a.setAttribute('role', 'menuitem');
+        a.innerHTML = iconSvg; // SVG constants — safe
+        var span = document.createElement('span');
+        span.textContent = label;
+        a.appendChild(span);
+        return a;
+      }
+
+      // USER.user_nb_privmsg nu e unread count — label simplu, fără număr
+      var privmsgLabel = 'Mesaje private';
+
+      ddUser.appendChild(menuItem(BASE + '/u' + USER.user_id,                                            IC.user,     'Profilul meu'));
+      ddUser.appendChild(menuItem(BASE + '/privmsg?folder=inbox',                                        IC.mail,     privmsgLabel));
+      ddUser.appendChild(menuItem(BASE + '/sta/u' + USER.user_id,                                        IC.topics,   'Topicurile mele'));
+      ddUser.appendChild(menuItem(BASE + '/u' + USER.user_id + '?view=reputation',                      IC.rep,      'Reputația mea'));
+      if (isAdmin) ddUser.appendChild(menuItem(BASE + '/admin',                                          IC.shield,   'Panou administrare'));
+      ddUser.appendChild(menuItem(BASE + '/profile?mode=editprofile&page_profil=preferences',            IC.settings, 'Setări cont'));
+      ddUser.appendChild(Object.assign(document.createElement('div'), { className: 'tb-dd-sep' }));
+      ddUser.appendChild(menuItem(BASE + '/login?logout=1',                                              IC.logout,   'Deconectare', 'danger'));
+
       document.body.appendChild(ddUser);
     }
 
-    /* Live notif container */
+    /* ── Live notif container ── */
     var liveNotif = document.createElement('div');
     liveNotif.id = Toolbar.LIVE_NOTIF;
     document.body.appendChild(liveNotif);
-
-    /* ── Logica dropdown-urilor ── */
+    
     var panels = USER.session_logged_in
       ? { 'tb-btn-notif': 'tb-dd-notif', 'tb-btn-msg': 'tb-dd-msg', 'tb-btn-user': 'tb-user-dropdown' }
       : { 'tb-btn-login': 'tb-dd-login' };
 
     function positionDropdown(btnEl, ddEl) {
       var triggerEl = btnEl.id === 'tb-btn-user' ? (btnEl.closest('.tb-user') || btnEl) : btnEl;
-      var rect  = triggerEl.getBoundingClientRect();
-      var ddW   = ddEl.offsetWidth || 220;
+      var rect    = triggerEl.getBoundingClientRect();
+      var ddW     = ddEl.offsetWidth || 220;
       var scrollX = window.scrollX || window.pageXOffset || 0;
-      var left = rect.right - ddW + scrollX;
+      var left    = rect.right - ddW + scrollX;
       var maxLeft = window.innerWidth - ddW - 8 + scrollX;
       var minLeft = 8 + scrollX;
       if (left > maxLeft) left = maxLeft;
@@ -643,8 +1010,8 @@
     }
 
     function togglePanel(btnId) {
-      var dd     = document.getElementById(panels[btnId]);
-      var btn    = document.getElementById(btnId);
+      var dd  = document.getElementById(panels[btnId]);
+      var btn = document.getElementById(btnId);
       if (!dd || !btn) return;
       var isOpen = dd.classList.contains('open');
       closeAll();
@@ -699,53 +1066,43 @@
     }, { passive: true });
 
     /* Mark as read */
-    var markReadBtn = document.getElementById('tb-notif-mark-read');
-    if (markReadBtn) {
-      markReadBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (window.FA && FA.Notification && typeof FA.Notification.markAsRead === 'function') {
-          FA.Notification.markAsRead();
-        }
-        Toolbar._setBadge('tb-badge-notif', 0);
-        document.querySelectorAll('#tb-notif-list .tb-notif-item.unread')
-          .forEach(function (el) { el.classList.remove('unread'); });
-      });
-    }
+    notifMarkRead.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.FA && FA.Notification && typeof FA.Notification.markAsRead === 'function') {
+        FA.Notification.markAsRead();
+      }
+      Toolbar._setBadge('tb-badge-notif', 0);
+      document.querySelectorAll('#tb-notif-list .tb-notif-item.unread')
+        .forEach(function (el) { el.classList.remove('unread'); });
+    });
 
-    /* Tema */
-    var themeBtn = document.getElementById('tb-theme-btn');
-    if (themeBtn) {
-      themeBtn.addEventListener('click', function () {
-        _darkMode = !_darkMode;
-        applyTheme(_darkMode);
-      });
-    }
+    /* Temă */
+    themeBtn.addEventListener('click', function () {
+      _darkMode = !_darkMode;
+      applyTheme(_darkMode);
+    });
 
     /* Search desktop */
-    var searchInput = document.getElementById('tb-search-input');
-    var searchBox   = document.getElementById('tb-search-results');
-    if (searchInput && searchBox) {
-      searchInput.addEventListener('input', function () {
-        var q = searchInput.value.trim();
-        clearTimeout(_searchTimer);
-        if (q.length < 2) { searchBox.style.display = 'none'; return; }
-        _searchTimer = setTimeout(function () { doSearch(q); }, 400);
-      });
-      searchInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { searchBox.style.display = 'none'; searchInput.value = ''; }
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          window.location.href = BASE + '/search?search_keywords=' + encodeURIComponent(searchInput.value.trim()) + '&submit=true';
-        }
-      });
-      document.addEventListener('click', function (e) {
-        if (!searchInput.contains(e.target) && !searchBox.contains(e.target)) {
-          searchBox.style.display = 'none';
-        }
-      });
-    }
+    searchInput.addEventListener('input', function () {
+      var q = searchInput.value.trim();
+      clearTimeout(_searchTimer);
+      if (q.length < 2) { searchBox.style.display = 'none'; return; }
+      _searchTimer = setTimeout(function () { doSearch(q); }, 400);
+    });
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { searchBox.style.display = 'none'; searchInput.value = ''; }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.location.href = BASE + '/search?search_keywords=' + encodeURIComponent(searchInput.value.trim()) + '&submit=true';
+      }
+    });
+    document.addEventListener('click', function (e) {
+      if (!searchInput.contains(e.target) && !searchBox.contains(e.target)) {
+        searchBox.style.display = 'none';
+      }
+    });
 
-    /* Notificări FA */
+    /* FA notifications */
     if (USER.activate_toolbar && USER.session_logged_in && USER.notifications) {
       var _startNotif = function () {
         if (!window.FA || !FA.Notification) return;
@@ -760,8 +1117,7 @@
       }
     }
   }
-
-  /* Ascunde toolbar-ul nativ Forumotion */
+  
   window.addEventListener('load', function () {
     var fa       = document.getElementById('fa_toolbar');
     var faHidden = document.getElementById('fa_toolbar_hidden');
