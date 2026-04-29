@@ -586,8 +586,7 @@ td.row1:last-child a, td.last a { color: var(--gc-light, #7ec8ff) !important; te
    ────────────────────────────────────────────────────────── */
 .statistics, #statistics, [class*="statistic"], [id*="statistic"],
 [class*="online"], [id*="online"] {
-  background: var(--f-surface) !important; border: 1px solid var(--f-border) !important;
-  border-radius: 8px !important; margin-bottom: 16px !important; overflow: hidden !important;
+  background: var(--f-surface) !important; border-radius: 8px !important; margin-bottom: 16px !important; overflow: hidden !important;
 }
 .statistics .maintitle, #statistics .maintitle { font-size: 11px !important; letter-spacing: .6px !important; color: var(--f-dim) !important; padding: 8px 14px !important; }
 .statistics td, #statistics td { background: transparent !important; border: none !important; border-right: 1px solid var(--f-sep) !important; padding: 14px 18px !important; vertical-align: top !important; color: var(--f-muted) !important; font-size: 12px !important; }
@@ -1224,14 +1223,14 @@ a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: n
   border-radius: 12px !important;
   box-shadow: 0 12px 40px var(--ips-shadow-lg) !important;
   z-index: 10000 !important;
-  display: none !important;
-  opacity: 0 !important;
+  display: none;
+  opacity: 0;
   transform: translateY(-6px) !important;
   transition: opacity .18s ease, transform .18s ease !important;
 }
 .tb-dropdown.open {
-  display: block !important;
-  opacity: 1 !important;
+  display: block;
+  opacity: 1;
   transform: translateY(0) !important;
 }
 
@@ -1565,17 +1564,17 @@ a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: n
   position: absolute !important; z-index: 99999 !important; width: 260px !important;
   background: var(--ihc-bg) !important; border: 1px solid var(--ihc-border) !important;
   border-radius: 10px !important; box-shadow: 0 8px 32px var(--ips-shadow-lg) !important;
-  display: none !important; opacity: 0 !important; transition: opacity .18s ease !important;
+  display: none; opacity: 0; transition: opacity .18s ease !important;
   pointer-events: auto !important;
 }
 
 /* Mobile overlay */
 #ihc-overlay {
-  display: none !important; position: fixed !important; inset: 0 !important;
+  display: none; position: fixed !important; inset: 0 !important;
   background: rgba(0,0,0,.55) !important; z-index: 99998 !important;
-  opacity: 0 !important; transition: opacity .25s ease !important;
+  opacity: 0; transition: opacity .25s ease !important;
 }
-#ihc-overlay.open { display: block !important; opacity: 1 !important; }
+#ihc-overlay.open { display: block; opacity: 1; }
 
 /* Mobile bottom sheet */
 #ihc-sheet {
