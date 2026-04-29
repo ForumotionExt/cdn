@@ -679,7 +679,6 @@
       notifBtn.title     = 'Notificări';
       notifBtn.setAttribute('aria-expanded', 'false');
       notifBtn.innerHTML = IC.bell; // SVG constant — safe
-      // USER.notifications este un flag (0/1), nu un count — badge-ul e populat de Toolbar.refresh()
       notifBtn.appendChild(makeBadge('tb-badge-notif', 0));
       right.appendChild(notifBtn);
 
@@ -862,7 +861,6 @@
       document.body.appendChild(ddLogin);
     }
 
-    /* ── Notif dropdown ── */
     var ddNotif = document.createElement('div');
     ddNotif.id        = 'tb-dd-notif';
     ddNotif.className = 'tb-dropdown tb-panel';
@@ -894,7 +892,7 @@
     var notifFooter = document.createElement('div');
     notifFooter.className = 'tb-panel-footer';
     var notifAllA = document.createElement('a');
-    notifAllA.href        = '/forum/index.php?app=core&module=global&section=notifications';
+    notifAllA.href        = '/profile?mode=editprofile&page_profil=notifications';
     notifAllA.textContent = 'Vezi toate notificările';
     notifFooter.appendChild(notifAllA);
 
@@ -915,7 +913,7 @@
     var msgH3 = document.createElement('h3');
     msgH3.textContent = 'Mesaje private';
     var msgNewA = document.createElement('a');
-    msgNewA.href        = '/privmsg?mode=compose';
+    msgNewA.href        = '/privmsg?mode=post';
     msgNewA.textContent = 'Mesaj nou';
     msgHead.appendChild(msgH3);
     msgHead.appendChild(msgNewA);
@@ -1121,7 +1119,6 @@
       }
     });
 
-    /* FA notifications */
     if (USER.activate_toolbar && USER.session_logged_in && USER.notifications) {
       var _startNotif = function () {
         if (!window.FA || !FA.Notification) return;
@@ -1137,7 +1134,6 @@
     }
   }
 
-  /* ── Ascunde toolbar-ul nativ Forumotion ── */
   window.addEventListener('load', function () {
     var fa       = document.getElementById('fa_toolbar');
     var faHidden = document.getElementById('fa_toolbar_hidden');
