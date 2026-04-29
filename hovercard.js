@@ -368,7 +368,10 @@
   }
 
   function init() {
-    if (['/c', '/t', '/u'].some(path => window.location.pathname.startsWith(path))) return;
+    if (['/c', '/t', '/u'].some(path => window.location.pathname.startsWith(path))) {
+      console.log('%c IPS Hovercard not been registred.', 'color: skyblue;font-size:10px;font-family: monospace;');
+      return;
+    }
     console.log('%c IPS Hovercard has been registred.', 'color: skyblue;font-size:10px;font-family: monospace;');
     var touch = U.isTouch();
 
