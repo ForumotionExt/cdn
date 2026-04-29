@@ -8,10 +8,7 @@
     isTouch:  function(){ return ('ontouchstart' in window)||(navigator.maxTouchPoints>0)||window.matchMedia('(hover: none)').matches; },
   };
 
-  /* ── Toate stilurile sunt în styles.css ── */
-
   var CACHE_TTL = 5 * 60 * 1000;
-
   var _cache      = {};
   var _pending    = {};
   var _card       = null;
@@ -20,12 +17,8 @@
   var _showTimer  = null;
   var _currentUid = null;
   var _anchor     = null;
-
   var BASE = location.protocol + '//' + window.location.hostname;
 
-  /* ─────────────────────────────────────────
-     Fetch + parse profil cu cache TTL
-  ───────────────────────────────────────── */
   function fetchProfile(uid) {
     var cached = _cache[uid];
     if (cached && (Date.now() - cached.ts) < CACHE_TTL) {
@@ -123,7 +116,6 @@
     return m ? m[1] : null;
   }
 
-  /* ── HTML card — folosește doar clase CSS ── */
   function buildCardHTML(data) {
     var av = data.avatar
       ? '<img src="' + U.escAttr(data.avatar) + '" alt="" />'
@@ -203,7 +195,6 @@
     .finally(function () { btn.disabled = false; });
   }
 
-  /* ── Desktop card ── */
   function createCard() {
     var el = document.createElement('div');
     el.id  = 'ips-hovercard';
@@ -377,6 +368,8 @@
   }
 
   function init() {
+    if (['/c', '/t', '/u'].some(path => window.location.pathname.startsWith(path))) return;
+    console.log('%c IPS Hovercard has been registred.', 'color: skyblue;font-size:10px;font-family: monospace;');
     var touch = U.isTouch();
 
     scanLinks(null, touch);
