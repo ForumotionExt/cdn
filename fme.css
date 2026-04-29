@@ -1925,3 +1925,14 @@ fieldset.formbuttonrow.center input.button[type="reset"] {
 @media (max-width: 380px) {
   .ips-subforum-grid { grid-template-columns: 1fr !important; }
 }
+
+@media (max-width: 768px) {
+  .tb-search-wrap { display: none; }
+}
+
+.ihc-stats-rows { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; }
+.ihc-stat-row   { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ihc-stat-icon  { width: 15px; height: 15px; opacity: .5; flex-shrink: 0; }
+.ihc-stat-icon svg { width: 100%; height: 100%; }
+.ihc-stat-label { color: var(--ips-muted); flex: 1; }
+.ihc-stat-val   { font-weight: 600; }
