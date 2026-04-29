@@ -1538,7 +1538,7 @@ a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: n
   padding: 10px 14px !important; margin-bottom: 12px !important;
 }
 .ihc-stat { flex: 1 !important; text-align: center !important; }
-.ihc-stat-val { display: block !important; font-size: 15px !important; font-weight: 600 !important; color: var(--ips-text-strong) !important; }
+.ihc-stat-val { display: block !important; font-size: 11px !important; font-weight: 600 !important; color: var(--ips-text-strong) !important; }
 .ihc-stat-label { display: block !important; font-size: 10px !important; color: var(--ips-muted) !important; margin-top: 2px !important; text-transform: uppercase !important; letter-spacing: .04em !important; }
 .ihc-stat-sep { width: 1px !important; height: 28px !important; background: var(--ihc-stat-sep) !important; }
 .ihc-joined { font-size: 11px !important; }
