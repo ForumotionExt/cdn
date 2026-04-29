@@ -56,6 +56,11 @@
     return NOTIF_TYPES[type] || { icon: IC.bell, cssClass: 'notif-default', label: 'Notificare' };
   }
 
+  /* ─────────────────────────────────────────────
+   *  NOTIFICĂRI — helpers DOM (fără innerHTML)
+   * ───────────────────────────────────────────── */
+
+  /** Creează un <a> cu href și text, fără risc de XSS. */
   function createLink(href, text) {
     var a = document.createElement('a');
     a.href        = href;
@@ -148,7 +153,10 @@
 
     return frag;
   }
-  
+
+  /* ─────────────────────────────────────────────
+   *  Search
+   * ───────────────────────────────────────────── */
   var _searchTimer = null;
   var BASE = location.protocol + '//' + window.location.hostname;
 
@@ -230,6 +238,9 @@
     });
   }
 
+  /* ─────────────────────────────────────────────
+   *  Temă
+   * ───────────────────────────────────────────── */
   var _darkMode = localStorage.getItem('ips-theme') !== 'light';
 
   function applyTheme(dark) {
@@ -242,6 +253,9 @@
     }
   }
 
+  /* ─────────────────────────────────────────────
+   *  Sunet notificare
+   * ───────────────────────────────────────────── */
   function playNotifSound() {
     try {
       var ctx  = new (window.AudioContext || window.webkitAudioContext)();
@@ -412,7 +426,11 @@
         el.style.display = 'none';
       }
     },
-    
+
+    /**
+     * Adaugă un item de notificare în listă.
+     * Construit complet cu createElement — fără innerHTML pentru date utilizator.
+     */
     _addItem: function (pos, data) {
       if (data.text && data.text.type === 0) return;
 
@@ -507,7 +525,7 @@
 
   /* ── Patch pe window.Toolbar existent ── */
   var _patchMethods = [
-    'LIVE_NOTIF', 'NOTIF_LIST', 'NOTIF_UNREAD', 'refresh', 'compileNotif',
+    'LIVE_NOTIF', 'NOTIFICATIONS', 'NOTIF_LIST', 'NOTIF_UNREAD', 'refresh', 'compileNotif',
     '_alignNotifications', '_setBadge', '_addItem', '_readItem', '_delItem', '_renderPmList',
   ];
 
@@ -594,7 +612,7 @@
     nav.appendChild(buildNavLinks(navItems));
     tb.appendChild(nav);
 
-    /* Search */
+    /* Search — vizibil pe desktop, ascuns pe mobil via CSS (.tb-search-wrap) */
     var searchWrap  = document.createElement('div');
     searchWrap.className = 'tb-search-wrap';
     var searchInner = document.createElement('div');
@@ -977,7 +995,7 @@
     var liveNotif = document.createElement('div');
     liveNotif.id = Toolbar.LIVE_NOTIF;
     document.body.appendChild(liveNotif);
-    
+
     var panels = USER.session_logged_in
       ? { 'tb-btn-notif': 'tb-dd-notif', 'tb-btn-msg': 'tb-dd-msg', 'tb-btn-user': 'tb-user-dropdown' }
       : { 'tb-btn-login': 'tb-dd-login' };
@@ -1082,13 +1100,13 @@
       applyTheme(_darkMode);
     });
 
-    /* Search desktop */
     searchInput.addEventListener('input', function () {
       var q = searchInput.value.trim();
       clearTimeout(_searchTimer);
       if (q.length < 2) { searchBox.style.display = 'none'; return; }
       _searchTimer = setTimeout(function () { doSearch(q); }, 400);
     });
+    
     searchInput.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { searchBox.style.display = 'none'; searchInput.value = ''; }
       if (e.key === 'Enter') {
@@ -1096,6 +1114,7 @@
         window.location.href = BASE + '/search?search_keywords=' + encodeURIComponent(searchInput.value.trim()) + '&submit=true';
       }
     });
+    
     document.addEventListener('click', function (e) {
       if (!searchInput.contains(e.target) && !searchBox.contains(e.target)) {
         searchBox.style.display = 'none';
@@ -1117,7 +1136,8 @@
       }
     }
   }
-  
+
+  /* ── Ascunde toolbar-ul nativ Forumotion ── */
   window.addEventListener('load', function () {
     var fa       = document.getElementById('fa_toolbar');
     var faHidden = document.getElementById('fa_toolbar_hidden');
