@@ -11,7 +11,14 @@
       return String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     },
     isTouch: function () {
-      return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(hover: none)').matches;
+      /*
+       * navigator.maxTouchPoints > 0 singur e prea agresiv — Windows 10/11
+       * raportează 10 chiar și fără touchscreen.
+       * Combinăm cu hover:none (pointer primar non-mouse) pentru precizie.
+       */
+      var hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+      var hasNoHover       = window.matchMedia('(hover: none)').matches;
+      return hasCoarsePointer && hasNoHover;
     },
   };
 
@@ -331,11 +338,17 @@
     return frag;
   }
 
+  /* ─────────────────────────────────────────────
+   *  renderInto — înlocuiește conținutul unui container
+   * ───────────────────────────────────────────── */
   function renderInto(container, node) {
     container.textContent = '';
     container.appendChild(node);
   }
 
+  /* ─────────────────────────────────────────────
+   *  Follow handler
+   * ───────────────────────────────────────────── */
   function attachFollowHandler(container) {
     var btn = container.querySelector('.ihc-btn-follow');
     if (!btn) return;
@@ -368,6 +381,9 @@
     .finally(function () { btn.disabled = false; });
   }
 
+  /* ─────────────────────────────────────────────
+   *  Hovercard (desktop)
+   * ───────────────────────────────────────────── */
   function createCard() {
     var el = document.createElement('div');
     el.id  = 'ips-hovercard';
@@ -451,6 +467,9 @@
     _anchor     = null;
   }
 
+  /* ─────────────────────────────────────────────
+   *  Bottom sheet (mobile)
+   * ───────────────────────────────────────────── */
   function createSheet() {
     var overlay = document.createElement('div');
     overlay.id  = 'ihc-overlay';
@@ -506,6 +525,9 @@
     document.body.style.overflow = '';
   }
 
+  /* ─────────────────────────────────────────────
+   *  Link attachment
+   * ───────────────────────────────────────────── */
   function attachLink(a, isTouch) {
     if (isTouch) {
       if (a.dataset.hcBtn) return;
@@ -551,6 +573,9 @@
     });
   }
 
+  /* ─────────────────────────────────────────────
+   *  Init
+   * ───────────────────────────────────────────── */
   function init() {
     if (['/c', '/t', '/u'].some(function (p) { return window.location.pathname.startsWith(p); })) {
       console.log('%c IPS Hovercard not registered (excluded path).', 'color: skyblue; font-size: 10px; font-family: monospace;');
@@ -562,11 +587,19 @@
 
     /* Scanare inițială — prinde linkurile deja în DOM */
     scanLinks(null, touch);
+    /* Safety net: Forumotion poate injecta conținut puțin după DOMContentLoaded */
+    setTimeout(function () { scanLinks(null, touch); }, 200);
 
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { hideNow(); hideSheet(); }
     });
 
+    /*
+     * MutationObserver prinde orice link adăugat dinamic după init.
+     * Desktop: scanăm doar nodul adăugat (precis, fără reflow global).
+     * Touch: scanăm tot documentul — butoanele "i" au guard dataset,
+     *        deci nu se inserează de două ori.
+     */
     var observer = new MutationObserver(function (mutations) {
       if (touch) {
         scanLinks(null, touch);
@@ -578,7 +611,6 @@
         });
       }
     });
-    
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
