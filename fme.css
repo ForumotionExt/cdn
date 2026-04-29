@@ -1,11 +1,8 @@
 /* ============================================================
    IPS THEME — styles.css
    Toate variabilele CSS + stilurile componentelor
+   Update: 29 apr 21:09
    ============================================================ */
-
-/* ──────────────────────────────────────────────────────────
-   1. CSS VARIABLES — DARK (default)
-   ────────────────────────────────────────────────────────── */
 :root,
 [data-ips-theme="dark"] {
 
@@ -845,8 +842,8 @@ a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: n
 #ips-toolbar *, #ips-toolbar *::before, #ips-toolbar *::after,
 .tb-dropdown *, .tb-dropdown *::before, .tb-dropdown *::after {
   box-sizing: border-box !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  margin: 0;
+  padding: 0;
 }
 
 #ips-toolbar {
@@ -863,6 +860,8 @@ a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: n
   box-shadow: 0 2px 12px var(--ips-shadow-md) !important;
   font-family: inherit !important;
   font-size: 13px !important;
+  align-content: space-between;
+  justify-content: space-between;
 }
 
 /* ── Grupul STÂNGA: logo + separator + navigație ── */
@@ -940,6 +939,7 @@ a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: n
   align-items: center !important;
   gap: 2px !important;
   overflow: hidden !important;
+  flex: 1 1 0%;
 }
 .tb-nav a {
   padding: 5px 9px !important;
