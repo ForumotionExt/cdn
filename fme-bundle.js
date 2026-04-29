@@ -1,24 +1,7 @@
-/* ══════════════════════════════════════════════════════
-   FME.JS — v1.1.0
-   Utils · IPS Stats · HoverCard · Toolbar
-   Category Lock · Forum Enhancements
-   CSS separat: fme.css
-   ══════════════════════════════════════════════════════ */
-
-/* ── UTILS ── */
-/* ══════════════════════════════════════════════════════════
-   UTILS.JS — shared utilities for ips / toolbar / hovercard
-   Trebuie încărcat primul dintre cele 4 fișiere.
-   Expune: window.ColorUtils, window.IpsUtils
-   ══════════════════════════════════════════════════════════ */
 (function (w) {
   'use strict';
 
-  /* ─────────────────────────────────────────
-     ColorUtils — parsare + manipulare culori
-  ───────────────────────────────────────── */
   var ColorUtils = {
-
     parseRGB: function (col) {
       if (!col) return null;
       col = col.trim();
@@ -51,12 +34,7 @@
     },
   };
 
-  /* ─────────────────────────────────────────
-     IpsUtils — funcții generale reutilizabile
-  ───────────────────────────────────────── */
   var IpsUtils = {
-
-    /* Inițiale dintr-un nume (max 2 caractere) */
     initials: function (name) {
       return (name || '?').split(' ')
         .map(function (w) { return w[0] || ''; })
@@ -123,12 +101,6 @@
 
 })(window);
 
-/* ── IPS STATS ── */
-/* ══════════════════════════════════════════════════════════
-   IPS.JS — Forum stats & Who's online widgets
-   STANDALONE — nu depinde de utils.js
-   Foloseste utils.js daca e disponibil, altfel fallback intern.
-   ══════════════════════════════════════════════════════════ */
 (function (w) {
   'use strict';
 
@@ -561,14 +533,6 @@
 
 })(window);
 
-
-/* ── HOVERCARD ── */
-/* ══════════════════════════════════════════════════════════
-   HOVERCARD.JS
-   • Desktop : tooltip la hover pe /u{id}
-   • Mobile  : bottom sheet la tap pe /u{id}
-   Depinde de: utils.js (ColorUtils, IpsUtils)
-   ══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
@@ -629,34 +593,19 @@
     return _pending[uid];
   }
 
-  /* ─────────────────────────────────────────
-     Parsare pagină profil
-  ───────────────────────────────────────── */
   function parseProfile(html, uid, statsHtml) {
     var doc  = new DOMParser().parseFromString(html, 'text/html');
     var data = { uid: uid };
 
-    /* ── Username + Rang + Avatar din sidebar dreapta ──
-       Structura reala Forumotion:
-         <div class="maintitle"><h3>{USERNAME} {USER_ONLINE_ONLY}</h3></div>
-         <div class="box-content profile center">
-           {AVATAR_IMG}<br/>
-           <div class="block-follow">...</div>
-           {POSTER_RANK_ONLY}   ← text simplu sau span cu rang
-         </div>
-    ── */
-
-    /* Username: din h3 in maintitle — textContent fara iconite online */
     data.username = '—';
     var maintitle = doc.querySelector('#profile-advanced-right .maintitle h3');
     if (maintitle) {
-      /* USER_ONLINE_ONLY e de obicei un <img> sau <span class="online-status"> */
       var uClone = maintitle.cloneNode(true);
-      uClone.querySelectorAll('img, span').forEach(function(x){ x.remove(); });
-      var uname = uClone.textContent.trim();
+      uClone.querySelectorAll('img, i').forEach(function(x){ x.remove(); });
+      var uname = uClone?.querySelector('span')?.textContent.trim() || uClone.textContent.trim();
       if (uname) data.username = uname;
     }
-    /* Fallback: navstrip contine username in ultimul <li> */
+    
     if (data.username === '—') {
       var navlis = doc.querySelectorAll('#navstrip li');
       if (navlis.length >= 3) {
@@ -681,16 +630,11 @@
       if (rankText) data.rank = rankText;
     }
 
-    /* ── Postări + Înregistrat — câmpuri custom cu ID fix ──
-       field_id-4  = Data înregistrării
-       field_id-6  = Număr postări
-       Sunt pe pagina principală /u{id}, nu pe /u{id}stats
-    ── */
     data.posts  = '—';
     data.joined = '—';
 
-    var ddPosts  = doc.querySelector('dl[id="field_id-6"] dd.field_uneditable');
-    var ddJoined = doc.querySelector('dl[id="field_id-4"] dd.field_uneditable');
+    var ddPosts  = doc.querySelector('dl[id="field_id-6"] dd');
+    var ddJoined = doc.querySelector('dl[id="field_id-4"] dd');
 
     if (ddPosts  && ddPosts.textContent.trim())  data.posts  = ddPosts.textContent.trim();
     if (ddJoined && ddJoined.textContent.trim()) data.joined = ddJoined.textContent.trim();
@@ -710,7 +654,6 @@
       } catch(e) {}
     }
 
-    /* ── Follow: butonul followBtn in sidebar ── */
     var followBtn = doc.querySelector('.followBtn');
     data.isFollowing = followBtn
       ? followBtn.classList.contains('following') || /unfollow|urmarit/i.test(followBtn.textContent)
@@ -726,9 +669,6 @@
     return m ? m[1] : null;
   }
 
-  /* ═══════════════════════════════════════════
-     CARD HTML (comun desktop + mobile)
-  ═══════════════════════════════════════════ */
   function buildCardHTML(data) {
     var av = data.avatar
       ? '<img src="' + U.escAttr(data.avatar) + '" alt="" />'
@@ -777,7 +717,6 @@
     return '<div class="ihc-error">Nu s-au putut încărca datele.</div>';
   }
 
-  /* ── Atașează handler follow pe containerul dat ── */
   function attachFollowHandler(container) {
     var btn = container.querySelector('.ihc-btn-follow');
     if (!btn) return;
@@ -787,9 +726,6 @@
     });
   }
 
-  /* ─────────────────────────────────────────
-     Follow toggle
-  ───────────────────────────────────────── */
   function toggleFollow(btn) {
     var uid    = btn.dataset.uid;
     var active = btn.classList.contains('active');
@@ -820,9 +756,6 @@
     .finally(function () { btn.disabled = false; });
   }
 
-  /* ═══════════════════════════════════════════
-     DESKTOP — hovercard
-  ═══════════════════════════════════════════ */
   function createCard() {
     var el = document.createElement('div');
     el.id  = 'ips-hovercard';
@@ -901,9 +834,6 @@
     _anchor     = null;
   }
 
-  /* ═══════════════════════════════════════════
-     MOBILE — bottom sheet
-  ═══════════════════════════════════════════ */
   function createSheet() {
     /* Overlay */
     var overlay = document.createElement('div');
@@ -961,9 +891,6 @@
     document.body.style.overflow = '';
   }
 
-  /* ═══════════════════════════════════════════
-     ATTACH LINK
-  ═══════════════════════════════════════════ */
   function attachLink(a, isTouch) {
     if (isTouch) {
       /* Mobile: nu intercept linkul — adăugăm un buton "i" lângă el.
@@ -1013,9 +940,6 @@
     } // end desktop
   }
 
-  /* ─────────────────────────────────────────
-     Scanare DOM + MutationObserver
-  ───────────────────────────────────────── */
   function scanLinks(root, isTouch) {
     var ctx = root || document;
     ctx.querySelectorAll('a[href]').forEach(function (a) {
@@ -1024,9 +948,6 @@
     });
   }
 
-  /* ─────────────────────────────────────────
-     CSS — desktop card + mobile sheet
-  ───────────────────────────────────────── */
   function injectStyles(isTouch) {
     if (document.getElementById('ihc-styles')) return;
     var s = document.createElement('style');
@@ -1126,9 +1047,6 @@
     document.head.appendChild(s);
   }
 
-  /* ─────────────────────────────────────────
-     Init
-  ───────────────────────────────────────── */
   function init() {
     var touch = U.isTouch();
 
@@ -1156,8 +1074,6 @@
           });
         });
       } else {
-        /* Pe touch: re-scan tot documentul la fiecare mutatie
-           (ips.js face replaceWith care scoate noduri din DOM) */
         scanLinks(null, touch);
       }
     });
@@ -1179,35 +1095,20 @@
 })();
 
 
-/* ── TOOLBAR ── */
-/* ══════════════════════════════════════════════════════════
-   TOOLBAR.JS — navbar custom pentru Forumotion
-   Depinde de: utils.js (ColorUtils, IpsUtils)
-   ══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
   var U  = window.IpsUtils;
   var CU = window.ColorUtils;
-
   var USER = (typeof _userdata !== 'undefined' ? _userdata : {}) || {};
-
-  /* ════════════════════════════════════════════
-     CONFIGURARE NAVBAR
-  ════════════════════════════════════════════ */
-  /* Texte (normalizate) de ascuns din navbar */
   var HIDE_NAV_LABELS = [
     'cautare', 'cautare avansata', 'cautare avansata',
     'grupuri', 'profil', 'mesagerie', 'deconectare',
   ];
-  /* Href patterns de ascuns */
-  var HIDE_NAV_HREF_PATTERNS = ['/search', '/groups', '/profile', '/privmsg', 'logout'];
-  /* Redenumiri navbar */
-  var RENAME_NAV = { 'acasa': 'Forum', 'acasa': 'Forum', 'faq': 'Suport' };
 
-  /* ════════════════════════════════════════════
-     ICONS SVG
-  ════════════════════════════════════════════ */
+  var HIDE_NAV_HREF_PATTERNS = ['/search', '/groups', '/profile', '/privmsg', 'logout', '/login', '/register'];
+  var RENAME_NAV = { 'acasa': 'Forum', 'membri': 'Utilizatori', 'faq': 'Suport' };
+
   var IC = {
     bell:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
     mail:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
@@ -1231,16 +1132,10 @@
     moon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
   };
 
-  /* ════════════════════════════════════════════
-     CULORI GRUP USER (din _userdata)
-  ════════════════════════════════════════════ */
   var gc    = '#' + (USER.groupcolor || '1B6AA7');
   var gcL   = CU.lighten(USER.groupcolor ? '#' + USER.groupcolor : '#1B6AA7', 55);
   var gcDim = CU.alphaBg(USER.groupcolor ? '#' + USER.groupcolor : '#1B6AA7', .18);
 
-  /* ════════════════════════════════════════════
-     TIPURI NOTIFICĂRI
-  ════════════════════════════════════════════ */
   var NOTIF_TYPES = {
     0:  { icon: IC.mail,    bg: CU.alphaBg('#1B6AA7', .18), col: gcL,       label: 'Mesaj privat'    },
     2:  { icon: IC.friend,  bg: 'rgba(34,197,94,.12)',      col: '#4ade80', label: 'Cerere prieten'  },
@@ -1257,9 +1152,6 @@
     return NOTIF_TYPES[type] || { icon: IC.bell, bg: 'rgba(255,255,255,.07)', col: 'rgba(255,255,255,.5)', label: 'Notificare' };
   }
 
-  /* ════════════════════════════════════════════
-     SEARCH LIVE — căutare rapidă topics/useri
-  ════════════════════════════════════════════ */
   var _searchTimer = null;
   var BASE = location.protocol + '//' + window.location.hostname;
 
@@ -1310,9 +1202,6 @@
     });
   }
 
-  /* ════════════════════════════════════════════
-     TEMA LIGHT / DARK TOGGLE
-  ════════════════════════════════════════════ */
   var _darkMode = localStorage.getItem('ips-theme') !== 'light';
 
   function applyTheme(dark) {
@@ -1325,9 +1214,6 @@
     }
   }
 
-  /* ════════════════════════════════════════════
-     NOTIFICARE SONORĂ (Web Audio API — fără request)
-  ════════════════════════════════════════════ */
   function playNotifSound() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1344,9 +1230,6 @@
     } catch (e) { /* AudioContext indisponibil */ }
   }
 
-  /* ════════════════════════════════════════════
-     TOOLBAR OBJECT — interfața cerută de FA.Notification
-  ════════════════════════════════════════════ */
   var Toolbar = {
 
     LIVE_NOTIF: 'tb-live-notif',
@@ -1571,11 +1454,6 @@
     },
   };
 
-  /* ════════════════════════════════════════════
-     PATCH WINDOW.TOOLBAR
-     Suprascriem metodele FA.Notification fără
-     a distruge Toolbar.init() original.
-  ════════════════════════════════════════════ */
   var _patchMethods = [
     'LIVE_NOTIF', 'refresh', 'compileNotif',
     '_alignNotifications', '_setBadge',
@@ -1592,9 +1470,6 @@
   _applyPatch();
   window.addEventListener('load', _applyPatch);
 
-  /* ════════════════════════════════════════════
-     INJECT CSS — toolbar + search + dropdowns
-  ════════════════════════════════════════════ */
   function injectStyles() {
     if (document.getElementById('ips-tb-styles')) return;
     var s = document.createElement('style');
@@ -2041,9 +1916,6 @@
     document.head.appendChild(s);
   }
 
-  /* ════════════════════════════════════════════
-     BUILD TOOLBAR
-  ════════════════════════════════════════════ */
   function buildToolbar() {
     if (!document.body) return;
 
@@ -2148,9 +2020,6 @@
     var cont = document.getElementById('container');
     if (cont) cont.style.paddingTop = '56px';
 
-    /* ────────────────────────────────────────────
-       MOBILE MENU DRAWER
-    ──────────────────────────────────────────── */
     var mobileMenu = document.createElement('div');
     mobileMenu.id = 'tb-mobile-menu';
     mobileMenu.setAttribute('role', 'navigation');
@@ -2209,7 +2078,6 @@
       });
     }
 
-    /* Click în afara drawer-ului îl închide */
     document.addEventListener('click', function (e) {
       if (!mobileMenu.contains(e.target) && e.target !== hamBtn && !hamBtn.contains(e.target)) {
         mobileMenu.classList.remove('open');
@@ -2217,7 +2085,6 @@
       }
     });
 
-    /* Escape închide și drawer-ul */
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         mobileMenu.classList.remove('open');
@@ -2225,7 +2092,6 @@
       }
     });
 
-    /* Search în drawer — același doSearch, rezultate în #tb-search-results-mob */
     var searchMob = document.getElementById('tb-search-input-mob');
     var searchBoxMob = document.getElementById('tb-search-results-mob');
     if (searchMob && searchBoxMob) {
@@ -2275,9 +2141,6 @@
       });
     }
 
-    /* ────────────────────────────────────────────
-       DROPDOWN LOGIN
-    ──────────────────────────────────────────── */
     if (!USER.session_logged_in) {
       var ddLogin = document.createElement('div');
       ddLogin.id        = 'tb-dd-login';
@@ -2307,9 +2170,6 @@
       document.body.appendChild(ddLogin);
     }
 
-    /* ────────────────────────────────────────────
-       DROPDOWN NOTIFICĂRI
-    ──────────────────────────────────────────── */
     var ddNotif = document.createElement('div');
     ddNotif.id        = 'tb-dd-notif';
     ddNotif.className = 'tb-dropdown tb-panel';
@@ -2328,9 +2188,6 @@
       '</div>';
     document.body.appendChild(ddNotif);
 
-    /* ────────────────────────────────────────────
-       DROPDOWN MESAJE PRIVATE
-    ──────────────────────────────────────────── */
     var ddMsg = document.createElement('div');
     ddMsg.id        = 'tb-dd-msg';
     ddMsg.className = 'tb-dropdown tb-panel';
@@ -2349,9 +2206,6 @@
       '</div>';
     document.body.appendChild(ddMsg);
 
-    /* ────────────────────────────────────────────
-       DROPDOWN USER
-    ──────────────────────────────────────────── */
     if (USER.session_logged_in) {
       var isAdmin  = String(USER.user_level) === '1';
       var privmsgBadge = USER.user_nb_privmsg > 0
@@ -2379,15 +2233,11 @@
       document.body.appendChild(ddUser);
     }
 
-    /* Container toasturi live */
     var liveNotif = document.createElement('div');
     liveNotif.id = Toolbar.LIVE_NOTIF;
     liveNotif.style.cssText = 'position:fixed;top:64px;right:16px;z-index:99999;width:330px;pointer-events:none';
     document.body.appendChild(liveNotif);
 
-    /* ════════════════════════════════════════════
-       DROPDOWN MANAGER
-    ════════════════════════════════════════════ */
     var panels = USER.session_logged_in
       ? { 'tb-btn-notif': 'tb-dd-notif', 'tb-btn-msg': 'tb-dd-msg', 'tb-btn-user': 'tb-user-dropdown' }
       : { 'tb-btn-login': 'tb-dd-login' };
@@ -2540,9 +2390,6 @@
       });
     }
 
-    /* ════════════════════════════════════════════
-       PORNIRE FA.Notification
-    ════════════════════════════════════════════ */
     if (USER.activate_toolbar && USER.session_logged_in && USER.notifications) {
       var _startNotif = function () {
         if (!window.FA || !FA.Notification) return;
@@ -2558,7 +2405,6 @@
     }
   }
 
-  /* ── Ascunde bara FA originală după load ── */
   window.addEventListener('load', function () {
     var fa       = document.getElementById('fa_toolbar');
     var faHidden = document.getElementById('fa_toolbar_hidden');
@@ -2576,59 +2422,23 @@
 
 })();
 
-
-/* ── CATEGORY LOCK ── */
-/* ══════════════════════════════════════════════════════════
-   CATEGORY-LOCK.JS — Protecție cu parolă per categorie
-   Folosește SHA-256 (Web Crypto API, fără librării externe)
-   Stochează deblocarea în sessionStorage (resetat la închidere tab)
-
-   CONFIGURARE:
-     Adaugă în LOCKS obiectul cu:
-       cheie  = ID-ul categoriei (valoarea atributului id="" de pe .ips-category-body)
-       valoare = hash SHA-256 al parolei (lowercase hex)
-
-   Generare hash: https://emn178.github.io/online-tools/sha256.html
-   sau rulează în consolă: crypto.subtle.digest('SHA-256', new TextEncoder().encode('parola'))
-     .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-   ══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
-
-  /* ════════════════════════════════════════════
-     CONFIGURARE — editează doar aici
-     Format: 'category-id': 'sha256-hash-al-parolei'
-  ════════════════════════════════════════════ */
+  
   var LOCKS = {
-    /* Categoria cu id="c1" (verificat din DOM)
-       Înlocuiește hash-ul cu cel generat pentru parola ta:
-       IpsLock.hash('parola-ta').then(console.log) */
     'c1': 'b2a18de2a9c8e34c02deae0de8b6abfdc62b4e82b48b3a4d16df82d4e3ab3b4f',
 
     /* Adaugă mai multe după același model:
     'c2': 'hash-sha256-aici', */
   };
-
-  /* ════════════════════════════════════════════
-     PROTECȚIE URL DIRECT — forumuri/topicuri
-     accesate direct fără să treacă prin categorie
-     Format: 'prefix-url': 'id-categorie-parinte'
-     Parola e aceeași cu cea a categoriei părinte.
-  ════════════════════════════════════════════ */
   var URL_LOCKS = {
-    /* Orice URL care începe cu /f3 e protejat cu parola lui c1 */
     '/f3': 'c1',
 
     /* Adaugă mai multe:
     '/f5': 'c2', */
   };
-
-  /* Prefix sessionStorage */
   var SS_KEY = 'ips_lock_';
 
-  /* ════════════════════════════════════════════
-     SHA-256 via Web Crypto API (async, nativ)
-  ════════════════════════════════════════════ */
   function sha256(str) {
     var data = new TextEncoder().encode(str);
     return crypto.subtle.digest('SHA-256', data).then(function (buf) {
@@ -2638,9 +2448,6 @@
     });
   }
 
-  /* ════════════════════════════════════════════
-     INJECTARE CSS
-  ════════════════════════════════════════════ */
   function injectStyles() {
     if (document.getElementById('ips-lock-styles')) return;
     var s = document.createElement('style');
@@ -2741,9 +2548,6 @@
     document.head.appendChild(s);
   }
 
-  /* ════════════════════════════════════════════
-     BUILD OVERLAY pentru o categorie
-  ════════════════════════════════════════════ */
   function buildOverlay(categoryId, categoryTitle, bodyEl) {
     var overlay = document.createElement('div');
     overlay.className = 'ips-lock-overlay';
@@ -2803,10 +2607,6 @@
     return overlay;
   }
 
-  /* ════════════════════════════════════════════
-     PAGE LOCK — blochează toată pagina când
-     URL-ul e un forum/topic protejat
-  ════════════════════════════════════════════ */
   function buildPageOverlay(categoryId) {
     /* Wrapper care acoperă tot conținutul paginii */
     var wrap = document.createElement('div');
@@ -2886,9 +2686,6 @@
     });
   }
 
-  /* ════════════════════════════════════════════
-     REVEAL — afișează conținutul după unlock
-  ════════════════════════════════════════════ */
   function revealCategory(categoryId, bodyEl, overlay) {
     overlay.style.transition = 'opacity .2s';
     overlay.style.opacity    = '0';
@@ -2910,16 +2707,10 @@
     }, 200);
   }
 
-  /* ════════════════════════════════════════════
-     HELPER
-  ════════════════════════════════════════════ */
   function escHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  /* ════════════════════════════════════════════
-     INIT — scanează categoriile din DOM
-  ════════════════════════════════════════════ */
   function init() {
     /* Web Crypto nu e disponibil pe HTTP simplu */
     if (!window.crypto || !window.crypto.subtle) {
@@ -2949,7 +2740,6 @@
                      document.getElementById('page') ||
                      document.body.children[0];
         if (mainEl) mainEl.style.visibility = 'hidden';
-        /* La deblocare, overlay-ul dispare și conținutul devine vizibil */
         var _obs = new MutationObserver(function () {
           if (!document.getElementById('ips-page-lock')) {
             document.documentElement.style.overflow = '';
@@ -2974,13 +2764,8 @@
       var titleEl  = headerEl ? headerEl.querySelector('.ips-category-title') : null;
       var title    = titleEl ? titleEl.textContent.trim() : 'această categorie';
 
-      /* Ascundem tot conținutul categoriei.
-         Ascundem explicit fiecare element frate cu bodyEl
-         care poate contine date sensibile. */
       bodyEl.style.display = 'none';
 
-      /* Ascundem toti fratii bodyEl din .ips-category
-         (forum-list-header, eventuale forum-rows in afara bodyEl) */
       var parent = bodyEl.parentNode;
       var siblings = parent ? parent.children : [];
       for (var si = 0; si < siblings.length; si++) {
@@ -2993,32 +2778,23 @@
         sib.style.display = 'none';
       }
 
-      /* Inserăm overlay-ul inainte de bodyEl */
       var overlay = buildOverlay(categoryId, title, bodyEl);
       parent.insertBefore(overlay, bodyEl);
     });
   }
 
-  /* ── ENTRY POINT ── */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-
-  /* API public — pentru a genera hash din consolă */
+  
   window.IpsLock = {
-    /* Generează hash pentru o parolă — rulează în consolă:
-       IpsLock.hash('parola-ta').then(console.log) */
     hash: sha256,
-
-    /* Resetează o categorie (pentru test) */
     reset: function (categoryId) {
       sessionStorage.removeItem(SS_KEY + categoryId);
       location.reload();
     },
-
-    /* Resetează toate categoriile */
     resetAll: function () {
       Object.keys(sessionStorage).forEach(function (k) {
         if (k.indexOf(SS_KEY) === 0) sessionStorage.removeItem(k);
@@ -3030,13 +2806,6 @@
 })();
 
 
-/* ── FORUM ENHANCEMENTS ── */
-/* ══════════════════════════════════════════════════════════
-   FORUM-ENHANCEMENTS.JS
-   1. Subforumuri → grid cu carduri (preview topics + last post)
-   2. Forumuri fără postări → empty state cu iconită
-   3. Categorii protejate → last-post înlocuit cu lacăt
-   ══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
@@ -3044,21 +2813,8 @@
     escHtml: function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
     escAttr: function(s){ return String(s||'').replace(/"/g,'&quot;'); },
   };
-
-  /* ════════════════════════════════════════════
-     CONFIGURARE
-  ════════════════════════════════════════════ */
-
-  /* ID-urile categoriilor protejate (aceleași ca în category-lock.js)
-     Last-post-ul va fi înlocuit cu un lacăt în aceste categorii */
   var LOCKED_CATEGORIES = ['c1'];
-
-  /* Numărul minim de topics pentru a considera un forum "gol" */
   var EMPTY_THRESHOLD = 0;
-
-  /* ════════════════════════════════════════════
-     ICONS
-  ════════════════════════════════════════════ */
   var IC = {
     lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
     empty: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/></svg>',
@@ -3067,18 +2823,11 @@
     topic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
   };
 
-  /* ════════════════════════════════════════════
-     INJECT CSS
-  ════════════════════════════════════════════ */
   function injectStyles() {
     if (document.getElementById('ips-fe-styles')) return;
     var s = document.createElement('style');
     s.id  = 'ips-fe-styles';
     s.textContent = [
-
-      /* ══════════════════════════════
-         SUBFORUM GRID
-      ══════════════════════════════ */
       '.ips-subforum-grid{',
         'display:grid;',
         'grid-template-columns:repeat(auto-fill,minmax(200px,1fr));',
@@ -3206,10 +2955,6 @@
     document.head.appendChild(s);
   }
 
-  /* ════════════════════════════════════════════
-     1. SUBFORUM GRID
-     Înlocuiește `.ips-forum-subs` (lista text) cu grid de carduri
-  ════════════════════════════════════════════ */
   function enhanceSubforums() {
     document.querySelectorAll('.ips-forum-subs').forEach(function (subsEl) {
       var links = subsEl.querySelectorAll('a[href]');
@@ -3279,10 +3024,6 @@
     });
   }
 
-  /* ════════════════════════════════════════════
-     2. EMPTY STATE
-     Dacă un forum-row nu are last-post și topics=0
-  ════════════════════════════════════════════ */
   function enhanceEmptyForums() {
     document.querySelectorAll('.ips-forum-row').forEach(function (row) {
       var lastEl = row.querySelector('.ips-forum-last');
@@ -3312,10 +3053,6 @@
     });
   }
 
-  /* ════════════════════════════════════════════
-     3. LOCKED LAST POST
-     Înlocuiește last-post cu lacăt în categoriile protejate
-  ════════════════════════════════════════════ */
   function enhanceLockedCategories() {
     LOCKED_CATEGORIES.forEach(function (catId) {
       var bodyEl = document.getElementById(catId);
@@ -3335,14 +3072,11 @@
     });
   }
 
-  /* ════════════════════════════════════════════
-     INIT
-  ════════════════════════════════════════════ */
   function init() {
     injectStyles();
     enhanceSubforums();
-    enhanceLockedCategories(); /* mai intai locked — pune iconul lacat */
-    enhanceEmptyForums();      /* apoi empty — nu suprascriem locked */
+    enhanceLockedCategories();
+    enhanceEmptyForums();
   }
 
   if (document.readyState === 'loading') {
