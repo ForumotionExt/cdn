@@ -4,9 +4,6 @@
   var U  = window.IpsUtils;
   var CU = window.ColorUtils;
   var USER = (typeof _userdata !== 'undefined' ? _userdata : {}) || {};
-
-  /* ── Toate stilurile sunt în styles.css ── */
-
   var HIDE_NAV_LABELS = [
     'cautare', 'cautare avansata', 'grupuri', 'profil', 'mesagerie', 'deconectare',
   ];
@@ -136,9 +133,7 @@
   }
 
   var Toolbar = {
-
-    LIVE_NOTIF: 'tb-live-notif',
-
+    LIVE_NOTIF: 'tb-live-notif';
     compileNotif: function (data) {
       var t     = data.text || {};
       var from  = t.from   || {};
@@ -305,7 +300,7 @@
         '<div class="tb-notif-icon" style="' + iconStyle + '">' + ns.icon + '</div>' +
         '<div class="tb-notif-body">' +
           '<div class="tb-notif-text">' + Toolbar.compileNotif(data) + '</div>' +
-          '<span class="tb-notif-time">' + U.timeAgo(t.time || data.time || 0) + '</span>' +
+          '<span class="tb-notif-time">' + U.timeAgo(t.time || data.time || 0) || (t.time || data.time) + '</span>' +
         '</div>' +
         '<button class="tb-notif-del" title="Șterge">' + IC.trash + '</button>';
 
@@ -362,17 +357,12 @@
   _applyPatch();
   window.addEventListener('load', _applyPatch);
 
-  /* ══════════════════════════════════════════════════════════
-     BUILD TOOLBAR
-  ══════════════════════════════════════════════════════════ */
   function buildToolbar() {
     if (!document.body) return;
-
-    /* Setare CSS variables pentru group color — singurele valori dinamice */
+    console.log('%c IPS Toolbar has been registred.', 'color: skyblue;font-size:10px;font-family: monospace;');
     document.documentElement.style.setProperty('--gc',       gc);
     document.documentElement.style.setProperty('--gc-light', gcL);
     document.documentElement.style.setProperty('--gc-dim',   gcDim);
-
     applyTheme(_darkMode);
 
     /* Navbar */
