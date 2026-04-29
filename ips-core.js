@@ -1,7 +1,6 @@
 (function (w) {
   'use strict';
-
-  /* ── Fallback-uri dacă utils.js lipsește ── */
+  
   var CU = w.ColorUtils || {
     parseRGB: function (col) {
       if (!col) return null; col = col.trim();
@@ -40,6 +39,7 @@
     _data: {},
     
     init: function () {
+      console.log('%c IPS Core has been registred.', 'color: skyblue;font-size:10px;font-family: monospace;');
       document.querySelectorAll('[data-core]').forEach(function (el) {
         var funcName = el.getAttribute('data-core').split('.').pop().trim();
         if (funcName && typeof ips[funcName] === 'function') {
@@ -136,10 +136,7 @@
 
       ips._replace(el, html);
     },
-
-    /* ─────────────────────────────────────────────────────────
-       WHO IS ONLINE
-    ───────────────────────────────────────────────────────── */
+    
     forum_whois_online_core: function (el) {
       var text = el.textContent || '';
 
@@ -232,19 +229,16 @@
             ips._sbox('Vizit.', data.vizitatori    || 0) +
           '</div>' +
           '<div class="ips-separator"></div>' +
-          '<div class="ips-section-label">Utilizatori</div>' +
+          '<div class="ips-section-label">Conectati</div>' +
           '<div class="ips-chips-wrap">' + usersHTML + '</div>' +
           '<div class="ips-separator"></div>' +
-          '<div class="ips-section-label">Grupuri</div>' +
+          '<div class="ips-section-label"></div>' +
           '<div class="ips-chips-wrap">' + groupsHTML + '</div>' +
         '</div>';
 
       ips._replace(el, html);
     },
 
-    /* ─────────────────────────────────────────────────────────
-       _replace — înlocuire sigură
-    ───────────────────────────────────────────────────────── */
     _replace: function (el, html) {
       try {
         var wrap = document.createElement('div');
@@ -276,10 +270,7 @@
       box.textContent = '[' + fname + ']\n' + JSON.stringify(data, null, 2);
       if (el.parentNode) el.parentNode.insertBefore(box, el.nextSibling);
     },
-
-    /* ─────────────────────────────────────────────────────────
-       UI HELPERS — folosesc clase CSS din styles.css
-    ───────────────────────────────────────────────────────── */
+    
     _title: function (label) {
       return '<div class="ips-block-title">' + U.escHtml(label) + '</div>';
     },
@@ -320,7 +311,6 @@
     },
   };
 
-  /* ── ENTRY POINT ── */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { ips.init(); });
   } else {
