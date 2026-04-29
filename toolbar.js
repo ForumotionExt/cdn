@@ -134,6 +134,9 @@
 
   var Toolbar = {
     LIVE_NOTIF: 'tb-live-notif',
+    NOTIFICATIONS: 'tb-notifications',
+    NOTIF_LIST: 'tb-notif-list',
+    NOTIF_UNREAD: 'tb-badge-msg',
     compileNotif: function (data) {
       var t     = data.text || {};
       var from  = t.from   || {};
@@ -287,11 +290,9 @@
 
       var t  = data.text || {};
       var ns = notifStyle(t.type);
-
-      /* Iconiță cu culori din CSS variables */
       var iconStyle = 'background:var(--' + ns.cssClass + '-bg,var(--notif-default-bg));color:var(--' + ns.cssClass + '-col,var(--notif-default-col))';
-
       var el = document.createElement('a');
+      
       el.href      = t.url || '#';
       el.className = 'tb-notif-item' + (data.read ? '' : ' unread');
       el.id        = 'tb-n' + t.id;
@@ -340,9 +341,8 @@
     },
   };
 
-  /* ── Patch global Toolbar object ── */
   var _patchMethods = [
-    'LIVE_NOTIF', 'refresh', 'compileNotif',
+    'LIVE_NOTIF', 'NOTIFICATIONS', 'NOTIF_LIST', 'NOTIF_UNREAD', 'refresh', 'compileNotif',
     '_alignNotifications', '_setBadge',
     '_addItem', '_readItem', '_delItem', '_renderPmList',
   ];
