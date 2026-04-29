@@ -350,6 +350,7 @@
   function _applyPatch() {
     if (window.Toolbar && window.Toolbar !== Toolbar) {
       _patchMethods.forEach(function (key) { window.Toolbar[key] = Toolbar[key]; });
+      console.log('%c Toolbar IPS has been patch succesufully', 'color: orange; font-size: 10; font-family: monospace;');
     } else if (!window.Toolbar) {
       window.Toolbar = Toolbar;
     }
