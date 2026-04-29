@@ -133,7 +133,7 @@
   }
 
   var Toolbar = {
-    LIVE_NOTIF: 'tb-live-notif';
+    LIVE_NOTIF: 'tb-live-notif',
     compileNotif: function (data) {
       var t     = data.text || {};
       var from  = t.from   || {};
