@@ -1115,7 +1115,7 @@ a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: n
   font-weight: 700 !important;
   line-height: 16px !important;
   border-radius: 8px !important;
-  display: flex !important;
+  display: flex;
   align-items: center !important;
   justify-content: center !important;
   pointer-events: none !important;
