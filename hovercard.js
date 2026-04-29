@@ -7,15 +7,12 @@
     initials: function (n) {
       return (n || '?').split(' ').map(function (w) { return w[0] || ''; }).join('').substring(0, 2).toUpperCase() || '?';
     },
+
     escAttr: function (s) {
       return String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     },
+
     isTouch: function () {
-      /*
-       * navigator.maxTouchPoints > 0 singur e prea agresiv — Windows 10/11
-       * raportează 10 chiar și fără touchscreen.
-       * Combinăm cu hover:none (pointer primar non-mouse) pentru precizie.
-       */
       var hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
       var hasNoHover       = window.matchMedia('(hover: none)').matches;
       return hasCoarsePointer && hasNoHover;
@@ -147,13 +144,13 @@
           }
         }
 
-        /* Ultima activitate: fieldset.stats-field.genmed cu legenda "Subiecte" → al treilea <li> */
         if (!data.lastActive) {
-          var fieldsets2 = statDoc.querySelectorAll('fieldset.stats-field.genmed');
+          var fieldsets2 = statDoc.querySelectorAll('#profile-advanced-details .stats-field');
           for (var fi2 = 0; fi2 < fieldsets2.length; fi2++) {
             var leg2 = fieldsets2[fi2].querySelector('legend');
-            if (leg2 && /subiect/i.test(leg2.textContent)) {
-              var thirdLi = fieldsets2[fi2].querySelectorAll('ul li')[2];
+            if (leg2 && /informa/i.test(leg2.textContent)) {
+              var thirdLi = fieldsets2[fi2].querySelectorAll('ul li')[3];
+
               if (thirdLi) {
                 var laClone = thirdLi.cloneNode(true);
                 laClone.querySelectorAll('label').forEach(function (x) { x.remove(); });
@@ -313,10 +310,9 @@
     profileA.textContent = 'Profil';
     actions.appendChild(profileA);
 
-    /* Mesaj & Follow — ascunse pentru guest și pe propriul profil */
     if (!isGuest && !isOwnProfile) {
       var pmA = document.createElement('a');
-      pmA.href        = BASE + '/privmsg?mode=compose&u=' + data.uid;
+      pmA.href        = BASE + '/privmsg?mode=post&u=' + data.uid;
       pmA.className   = 'ihc-btn ihc-btn-pm';
       pmA.textContent = 'Mesaj';
       actions.appendChild(pmA);
