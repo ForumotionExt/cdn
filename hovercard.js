@@ -117,11 +117,11 @@
         var statDoc = new DOMParser().parseFromString(statsHtml, 'text/html');
 
         if (data.posts === '—') {
-          var sd = statDoc.querySelector('dl[id="field_id-6"] dd.field_uneditable');
+          var sd = statDoc.querySelector('dl[id="field_id-6"] dd');
           if (sd && sd.textContent.trim()) data.posts = sd.textContent.trim();
         }
         if (data.joined === '—') {
-          var jd = statDoc.querySelector('dl[id="field_id-4"] dd.field_uneditable');
+          var jd = statDoc.querySelector('dl[id="field_id-4"] dd');
           if (jd && jd.textContent.trim()) data.joined = jd.textContent.trim();
         }
         if (data.reputation === '—') {
@@ -184,6 +184,17 @@
   }
 
   /* ─────────────────────────────────────────────
+   *  Iconuri stats (SVG inline, constante — safe)
+   * ───────────────────────────────────────────── */
+  var SI = {
+    posts:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    topics:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
+    reputation: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    joined:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    active:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  };
+
+  /* ─────────────────────────────────────────────
    *  Card DOM builders (fără innerHTML pentru date utilizator)
    * ───────────────────────────────────────────── */
 
@@ -201,12 +212,6 @@
     return div;
   }
 
-  /**
-   * Construiește conținutul cardului cu createElement.
-   * Butoanele de mesaj și follow sunt ascunse pentru:
-   *   - utilizatori neautentificați (guest)
-   *   - profilul propriu al utilizatorului curent
-   */
   function buildCard(data) {
     var frag = document.createDocumentFragment();
 
@@ -250,63 +255,52 @@
     top.appendChild(infoDiv);
     frag.appendChild(top);
 
-    /* ── Stats ── */
+    /* ── Stats — rânduri compacte cu icon ── */
     var statsDiv = document.createElement('div');
-    statsDiv.className = 'ihc-stats';
+    statsDiv.className = 'ihc-stats-rows';
 
-    function makeStat(val, label, extraClass) {
-      var stat = document.createElement('div');
-      stat.className = 'ihc-stat';
-      var valSpan = document.createElement('span');
-      valSpan.className   = 'ihc-stat-val' + (extraClass ? ' ' + extraClass : '');
-      valSpan.textContent = val;
-      var labelSpan = document.createElement('span');
-      labelSpan.className   = 'ihc-stat-label';
-      labelSpan.textContent = label;
-      stat.appendChild(valSpan);
-      stat.appendChild(labelSpan);
-      return stat;
+    /**
+     * Creează un rând: [icon] [label] [valoare]
+     * icon: SVG string constant (safe), label/val: text content
+     */
+    function makeRow(iconSvg, label, val) {
+      var row = document.createElement('div');
+      row.className = 'ihc-stat-row';
+
+      var iconEl = document.createElement('span');
+      iconEl.className = 'ihc-stat-icon';
+      iconEl.innerHTML = iconSvg; // SVG constant — safe
+
+      var labelEl = document.createElement('span');
+      labelEl.className   = 'ihc-stat-label';
+      labelEl.textContent = label;
+
+      var valEl = document.createElement('span');
+      valEl.className   = 'ihc-stat-val';
+      valEl.textContent = val;
+
+      row.appendChild(iconEl);
+      row.appendChild(labelEl);
+      row.appendChild(valEl);
+      return row;
     }
 
-    function makeSep() {
-      var sep = document.createElement('div');
-      sep.className = 'ihc-stat-sep';
-      return sep;
-    }
+    statsDiv.appendChild(makeRow(SI.posts,  'Postări',      data.posts));
 
-    /* Postări — mereu afișat */
-    statsDiv.appendChild(makeStat(data.posts, 'Postări'));
-
-    /* Topicuri — dacă există */
     if (data.topics && data.topics !== '—') {
-      statsDiv.appendChild(makeSep());
-      statsDiv.appendChild(makeStat(data.topics, 'Topicuri'));
+      statsDiv.appendChild(makeRow(SI.topics, 'Topicuri', data.topics));
     }
-
-    /* Reputație — dacă există */
     if (data.reputation && data.reputation !== '—') {
-      statsDiv.appendChild(makeSep());
-      statsDiv.appendChild(makeStat(data.reputation, 'Reputație'));
+      statsDiv.appendChild(makeRow(SI.reputation, 'Reputație', data.reputation));
     }
 
-    /* Înregistrat — mereu afișat */
-    statsDiv.appendChild(makeSep());
-    statsDiv.appendChild(makeStat(data.joined, 'Înregistrat', 'ihc-joined'));
+    statsDiv.appendChild(makeRow(SI.joined, 'Înregistrat', data.joined));
+
+    if (data.lastActive) {
+      statsDiv.appendChild(makeRow(SI.active, 'Activ', data.lastActive));
+    }
 
     frag.appendChild(statsDiv);
-
-    /* ── Ultima activitate ── */
-    if (data.lastActive) {
-      var laDiv = document.createElement('div');
-      laDiv.className = 'ihc-last-active';
-      var laDot = document.createElement('span');
-      laDot.className = 'ihc-la-dot';
-      var laText = document.createElement('span');
-      laText.textContent = 'Activ: ' + data.lastActive;
-      laDiv.appendChild(laDot);
-      laDiv.appendChild(laText);
-      frag.appendChild(laDiv);
-    }
 
     /* ── Acțiuni ── */
     var actions = document.createElement('div');
@@ -338,17 +332,11 @@
     return frag;
   }
 
-  /* ─────────────────────────────────────────────
-   *  renderInto — înlocuiește conținutul unui container
-   * ───────────────────────────────────────────── */
   function renderInto(container, node) {
     container.textContent = '';
     container.appendChild(node);
   }
 
-  /* ─────────────────────────────────────────────
-   *  Follow handler
-   * ───────────────────────────────────────────── */
   function attachFollowHandler(container) {
     var btn = container.querySelector('.ihc-btn-follow');
     if (!btn) return;
@@ -381,9 +369,6 @@
     .finally(function () { btn.disabled = false; });
   }
 
-  /* ─────────────────────────────────────────────
-   *  Hovercard (desktop)
-   * ───────────────────────────────────────────── */
   function createCard() {
     var el = document.createElement('div');
     el.id  = 'ips-hovercard';
@@ -467,9 +452,6 @@
     _anchor     = null;
   }
 
-  /* ─────────────────────────────────────────────
-   *  Bottom sheet (mobile)
-   * ───────────────────────────────────────────── */
   function createSheet() {
     var overlay = document.createElement('div');
     overlay.id  = 'ihc-overlay';
@@ -525,9 +507,6 @@
     document.body.style.overflow = '';
   }
 
-  /* ─────────────────────────────────────────────
-   *  Link attachment
-   * ───────────────────────────────────────────── */
   function attachLink(a, isTouch) {
     if (isTouch) {
       if (a.dataset.hcBtn) return;
@@ -569,13 +548,10 @@
   function scanLinks(root, isTouch) {
     var ctx = root || document;
     ctx.querySelectorAll('a[href]').forEach(function (a) {
-      if (/^\/u\d/.test(a.getAttribute('href') || '')) attachLink(a, isTouch);
+      if (extractUid(a.getAttribute('href'))) attachLink(a, isTouch);
     });
   }
 
-  /* ─────────────────────────────────────────────
-   *  Init
-   * ───────────────────────────────────────────── */
   function init() {
     if (['/c', '/t', '/u'].some(function (p) { return window.location.pathname.startsWith(p); })) {
       console.log('%c IPS Hovercard not registered (excluded path).', 'color: skyblue; font-size: 10px; font-family: monospace;');
@@ -594,12 +570,6 @@
       if (e.key === 'Escape') { hideNow(); hideSheet(); }
     });
 
-    /*
-     * MutationObserver prinde orice link adăugat dinamic după init.
-     * Desktop: scanăm doar nodul adăugat (precis, fără reflow global).
-     * Touch: scanăm tot documentul — butoanele "i" au guard dataset,
-     *        deci nu se inserează de două ori.
-     */
     var observer = new MutationObserver(function (mutations) {
       if (touch) {
         scanLinks(null, touch);
