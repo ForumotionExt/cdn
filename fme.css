@@ -690,104 +690,110 @@ a.ips-lastpost-topic:hover { color: var(--gc-light, #7ec8ff) !important; }
    Folosite de ips-core.js pentru forum_stats și whois_online
    ────────────────────────────────────────────────────────── */
 .ips-block {
-  background: var(--ips-surface);
-  border: 1px solid var(--ips-border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: .75rem;
-  box-shadow: 0 2px 8px var(--ips-shadow-sm);
+  background: var(--ips-surface) !important;
+  border: 1px solid var(--ips-border) !important;
+  border-radius: 8px !important;
+  padding: 1rem 1.25rem !important;
+  margin-bottom: .75rem !important;
+  box-shadow: 0 2px 8px var(--ips-shadow-sm) !important;
+  overflow: hidden !important;
 }
 
 .ips-block-title {
-  background: var(--ips-elevated);
-  border-bottom: 1px solid var(--ips-border);
-  border-radius: 5px 5px 0 0;
-  padding: 10px 14px;
-  margin: -16px -20px .9rem;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ips-text-strong);
-  letter-spacing: .1px;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  background: var(--ips-elevated) !important;
+  border-bottom: 1px solid var(--ips-border) !important;
+  border-radius: 5px 5px 0 0 !important;
+  padding: 10px 14px !important;
+  margin: -16px -20px .9rem !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--ips-text-strong) !important;
+  letter-spacing: .1px !important;
+  text-transform: uppercase !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
 }
 
 .ips-section-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--ips-muted);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  margin-bottom: .5rem;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: var(--ips-muted) !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+  margin-bottom: .5rem !important;
+  display: block !important;
 }
 
 .ips-separator {
-  height: 1px;
-  background: var(--ips-sep);
-  margin: .75rem 0;
+  height: 1px !important;
+  background: var(--ips-sep) !important;
+  margin: .75rem 0 !important;
 }
 
 .ips-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: .9rem;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin-bottom: .9rem !important;
 }
 
 .ips-online-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(60px, 1fr));
-  gap: 8px;
-  margin-bottom: .9rem;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(60px, 1fr)) !important;
+  gap: 8px !important;
+  margin-bottom: .9rem !important;
 }
 
 .ips-stat-box {
-  padding: .6rem .75rem;
-  border-radius: 6px;
-  background: var(--ips-stat-bg);
-  border: 1px solid var(--ips-border);
+  padding: .6rem .75rem !important;
+  border-radius: 6px !important;
+  background: var(--ips-stat-bg) !important;
+  border: 1px solid var(--ips-border) !important;
 }
 
 .ips-stat-box-label {
-  font-size: 11px;
-  color: var(--ips-label);
-  margin-bottom: 4px;
+  font-size: 11px !important;
+  color: var(--ips-label) !important;
+  margin-bottom: 4px !important;
+  display: block !important;
 }
 
 .ips-stat-box-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--gc-light, #7ec8ff);
-  line-height: 1;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: var(--gc-light, #7ec8ff) !important;
+  line-height: 1 !important;
+  display: block !important;
 }
 
 .ips-stat-box-date {
-  font-size: 10px;
-  color: var(--ips-muted);
-  margin-top: 5px;
-  line-height: 1.3;
+  font-size: 10px !important;
+  color: var(--ips-muted) !important;
+  margin-top: 5px !important;
+  line-height: 1.3 !important;
+  display: block !important;
 }
 
 .ips-chips-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: .8rem;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-bottom: .8rem !important;
 }
 
 /* User chip */
 a.ips-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  background: var(--ips-card);
-  border: 1px solid var(--ips-border);
-  text-decoration: none;
-  transition: background .15s, border-color .15s;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+  background: var(--ips-card) !important;
+  border: 1px solid var(--ips-border) !important;
+  text-decoration: none !important;
+  transition: background .15s, border-color .15s !important;
+  color: inherit !important;
 }
 a.ips-chip:hover {
   background: var(--ips-card-hover) !important;
@@ -795,38 +801,38 @@ a.ips-chip:hover {
   text-decoration: none !important;
 }
 .ips-chip-av {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  flex-shrink: 0;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
 }
 .ips-chip-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ips-text-strong);
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--ips-text-strong) !important;
 }
 
 /* Group chip */
 a.ips-group-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 500;
-  transition: background .15s;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 12px !important;
+  border-radius: 20px !important;
+  text-decoration: none !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  transition: background .15s !important;
 }
-a.ips-group-chip:hover { filter: brightness(1.15); text-decoration: none !important; }
-.ips-group-chip-count { font-size: 10px; opacity: .45; }
+a.ips-group-chip:hover { filter: brightness(1.15) !important; text-decoration: none !important; }
+.ips-group-chip-count { font-size: 10px !important; opacity: .45 !important; }
 
-.ips-no-users { font-size: 12px; color: var(--ips-muted); }
+.ips-no-users { font-size: 12px !important; color: var(--ips-muted) !important; }
 
 @media (max-width: 400px) {
   .ips-online-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -884,14 +890,15 @@ a.ips-group-chip:hover { filter: brightness(1.15); text-decoration: none !import
 .tb-search-icon-svg svg { width: 14px; height: 14px; stroke-width: 2.2; }
 
 #tb-search-input {
-  width: 100%; height: 32px; padding: 0 10px 0 32px;
-  background: var(--tb-search-bg); border: 1px solid var(--tb-search-border);
-  border-radius: 8px; color: var(--tb-text); font-size: 13px; font-family: inherit;
-  outline: none; transition: background .15s, border-color .15s; -webkit-appearance: none;
+  width: 100% !important; height: 32px !important; padding: 0 10px 0 32px !important;
+  background: var(--tb-search-bg) !important; border: 1px solid var(--tb-search-border) !important;
+  border-radius: 8px !important; color: var(--tb-text) !important; font-size: 13px !important; font-family: inherit !important;
+  outline: none !important; transition: background .15s, border-color .15s; -webkit-appearance: none !important;
+  box-shadow: none !important;
 }
-#tb-search-input::placeholder { color: var(--tb-search-placeholder); }
-#tb-search-input:focus { background: var(--tb-search-bg-focus); border-color: var(--tb-search-border-focus); }
-#tb-search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+#tb-search-input::placeholder { color: var(--tb-search-placeholder) !important; }
+#tb-search-input:focus { background: var(--tb-search-bg-focus) !important; border-color: var(--tb-search-border-focus) !important; }
+#tb-search-input::-webkit-search-cancel-button { -webkit-appearance: none !important; }
 
 .tb-search-results {
   position: absolute; top: calc(100% + 6px); left: 0; right: 0;
@@ -1381,8 +1388,17 @@ div#ips_footer {
   border-top: 1px solid var(--ips-footer-border) !important; font-size: 12px !important; line-height: 1.7 !important;
 }
 div#ips_footer p, div#ips_footer p.center { margin: 0 !important; color: var(--ips-footer-text) !important; font-size: 11px !important; }
-div#ips_footer p a, div#ips_footer p.center a { color: var(--ips-footer-link) !important; text-decoration: none !important; transition: color .15s !important; }
-div#ips_footer p a:hover, div#ips_footer p.center a:hover { color: var(--ips-footer-link-h) !important; }
+
+/* Toate linkurile din footer, indiferent de structura HTML */
+div#ips_footer a, div#ips_footer p a, div#ips_footer p.center a,
+div#ips_footer div a, div#ips_footer span a {
+  color: var(--ips-footer-link) !important; text-decoration: none !important; transition: color .15s !important;
+}
+div#ips_footer a:hover, div#ips_footer p a:hover, div#ips_footer p.center a:hover,
+div#ips_footer div a:hover, div#ips_footer span a:hover {
+  color: var(--ips-footer-link-h) !important; text-decoration: none !important;
+}
+
 div#ips_footer .ips-footer-links ul, .ips-footer-links ul {
   display: flex !important; align-items: center !important; flex-direction: row !important;
   flex-wrap: wrap !important; justify-content: center !important; gap: 0 !important;
@@ -1397,7 +1413,11 @@ div#ips_footer .ips-footer-links li+li::before, .ips-footer-links li+li::before 
 }
 div#ips_footer .ips-footer-links li a, .ips-footer-links li a { color: var(--ips-footer-link) !important; text-decoration: none !important; transition: color .15s !important; }
 div#ips_footer .ips-footer-links li a:hover, .ips-footer-links li a:hover { color: var(--ips-footer-link-h) !important; }
-a.copyright:first-child::before { content: '·' !important; padding: 0 6px !important; color: var(--ips-footer-sep) !important; }
+
+/* Separator înaintea linkurilor copyright Forumotion (vine după textul forum-ului) */
+a.copyright + a.copyright::before { content: ' · '; color: var(--ips-footer-sep) !important; }
+a.copyright { color: var(--ips-footer-link) !important; text-decoration: none !important; font-size: 11px !important; }
+a.copyright:hover { color: var(--ips-footer-link-h) !important; }
 
 /* ──────────────────────────────────────────────────────────
    20. FORMS (register, profile, login)
