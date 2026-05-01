@@ -41,6 +41,8 @@ function parseStats(html) {
     if (paren > -1) value = value.substring(0, paren).trim();
 
     if (key) stats[key] = value;
+    console.log(stats);
+    return stats;
   });
 
   console.log('FME Stats parsed:', stats);
@@ -69,6 +71,7 @@ fetch('/popup_help.php?l=miscvars&i=mes_txt')
     var stats = parseStats(html);
     var el = document.querySelector('[data-string="total_topics"]');
     if (el) {
+      console.log(stats);
       applyStats(stats);
     } else {
       runObserver(stats);
