@@ -1,3 +1,5 @@
+console.log('FME Stats: script loaded');
+
 function extractNumber(html) {
   var tmp = document.createElement('div');
   tmp.innerHTML = html;
@@ -58,7 +60,7 @@ function runObserver(stats) {
   observer.observe(document.body, options);
 }
 
-fetch('/popup_help.php?l=miscvars&i=mes_txt')
+fetch('https://devs.forumotion.eu/popup_help.php?l=miscvars&i=mes_txt')
   .then(function(res) { return res.text(); })
   .then(function(html) {
     var stats = parseStats(html);
