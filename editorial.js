@@ -335,15 +335,21 @@
   };
 
   function detectPageClass() {
-    var b = document.body, path = location.pathname || '';
-    if (path === '/' || /\/index/.test(path) || (path.indexOf('/forum') === 0 && path.length < 8)) b.classList.add('page-index');
-    if (/\/f\d+/.test(path) || /viewforum/.test(path))  b.classList.add('page-viewforum');
-    if (/\/t\d+/.test(path) || /viewtopic/.test(path))  b.classList.add('page-viewtopic');
-    if (/\/post/.test(path) || /posting/.test(path))    b.classList.add('page-posting');
-    if (/\/u\d+/.test(path) || /profile/.test(path))    b.classList.add('page-profile');
-    if (/memberlist/.test(path))                        b.classList.add('page-memberlist');
-    if (/search/.test(path))                            b.classList.add('page-search');
-    if (/login/.test(path))                             b.classList.add('page-login');
+    var b = document.body;
+    var full = (location.pathname || '') + (location.search || '');
+
+    if (/^\/(\?|$)/.test(full) || /[\/=]index/i.test(full)) b.classList.add('page-index');
+    if (/\/f\d+|viewforum/i.test(full))                      b.classList.add('page-viewforum');
+    if (/\/t\d+|viewtopic/i.test(full))                      b.classList.add('page-viewtopic');
+    if (/\/post|posting|mode=reply|mode=post/i.test(full))   b.classList.add('page-posting');
+    if (/\/u\d+|profile/i.test(full))                        b.classList.add('page-profile');
+    if (/memberlist/i.test(full))                            b.classList.add('page-memberlist');
+    if (/search/i.test(full))                                b.classList.add('page-search');
+    if (/login/i.test(full))                                 b.classList.add('page-login');
+
+    if (!b.classList.contains('page-login')   && document.querySelector('input[name="password"]'))        b.classList.add('page-login');
+    if (!b.classList.contains('page-posting') && document.querySelector('textarea[name="message"]'))      b.classList.add('page-posting');
+    if (!b.classList.contains('page-search')  && document.querySelector('input[name="search_keywords"]')) b.classList.add('page-search');
   }
 
   function injectMasthead() {
@@ -448,5 +454,4 @@
   } else {
     init();
   }
-
 }(jQuery));
