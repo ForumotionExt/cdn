@@ -354,7 +354,7 @@
 
   function injectMasthead() {
     if (!document.body.classList.contains('page-index')) return;
-    if (document.querySelector('.fme-masthead')) return;
+    if (document.querySelector('.fme-masthead, [data-placeholder="forum-stats"]')) return;
     var content = document.querySelector('#page-body > .content, .page-body > .content, #page-body');
     if (!content) return;
     var s = window.FME_STATS || { members: '8.247', online: 142, posts: '184K' };
@@ -404,6 +404,51 @@
     });
   }
 
+  function injectLoginPage() {
+    var b = document.body;
+    if (!b.classList.contains('page-login')) return;
+    if (b.classList.contains('fme-login-done')) return;
+    b.classList.add('fme-login-done');
+
+    var $pageBody = $('#page-body');
+    var $form = $pageBody.find('form.loginbox, form[action*="login"]').first();
+    if (!$form.length) return;
+
+    var action      = $form.attr('action') || location.href;
+    var method      = $form.attr('method') || 'post';
+    var $hidden     = $form.find('input[type="hidden"]').clone();
+    var userVal     = $form.find('input[name="username"]').val() || '';
+    var forgotHref  = $('a[href*="sendpasswd"], a[href*="forgot"], a[href*="lostpw"]').first().attr('href') || '#';
+    var regHref     = $('a[href*="/register"], a[href*="mode=register"]').first().attr('href') || '/register';
+
+    var $new = $('<div id="login_form">').append(
+      $('<div class="site-description">').text('FME'),
+      $('<div class="welcome">').text('Bun venit înapoi în comunitate.'),
+      $('<form class="loginbox panel">').attr({ action: action, method: method }).append(
+        $hidden,
+        $('<h2>').text('Autentificare'),
+        $('<label>').attr('for', 'fme_user').text('Utilizator sau email'),
+        $('<input type="text">').attr({ name: 'username', id: 'fme_user', tabindex: '1', value: userVal }),
+        $('<label>').attr('for', 'fme_pass').text('Parolă'),
+        $('<input type="password">').attr({ name: 'password', id: 'fme_pass', tabindex: '2' }),
+        $('<div>').css({ display: 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '18px', 'font-size': '12px' }).append(
+          $('<label>').css({ display: 'flex', 'align-items': 'center', gap: '6px', color: 'var(--fme-dim)' }).append(
+            $('<input type="checkbox">').attr({ name: 'autologin', tabindex: '4' }),
+            document.createTextNode(' Ține-mă autentificat')
+          ),
+          $('<a>').attr('href', forgotHref).css({ color: 'var(--fme-accent)', 'font-style': 'italic' }).text('Parolă uitată?')
+        ),
+        $('<button type="submit">').attr({ name: 'login', tabindex: '6' }).text('Autentificare'),
+        $('<div>').css({ 'font-size': '12px', color: 'var(--fme-faint)', 'text-align': 'center', 'margin-top': '16px' }).append(
+          document.createTextNode('Nu ai cont? '),
+          $('<a>').attr('href', regHref).css({ color: 'var(--fme-accent)', 'font-style': 'italic' }).text('Înregistrează-te aici')
+        )
+      )
+    );
+
+    $pageBody.empty().append($new);
+  }
+
   function mountTweaksWidget() {
     var mount = document.querySelector('.fme-tweaks-mount');
     if (!mount || mount.dataset.fmeMounted) return;
@@ -444,6 +489,7 @@
     applyTweaks(loadTweaks());
     detectPageClass();
     injectMasthead();
+    injectLoginPage();
     applyDropcap();
     applyStateBadges();
     mountTweaksWidget();
@@ -454,4 +500,5 @@
   } else {
     init();
   }
+
 }(jQuery));
