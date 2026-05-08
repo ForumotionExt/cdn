@@ -594,6 +594,26 @@
       });
   }
 
+  function initBBCodeToolbar() {
+    $(document).on('click', '.bbcode-btn[data-bbcode]', function (e) {
+      e.preventDefault();
+      var tag      = $(this).attr('data-bbcode');
+      var targetId = $(this).attr('data-target');
+      var $ta      = targetId ? $('#' + targetId) : $('textarea[name="message"]');
+      if (!$ta.length) return;
+      var ta    = $ta[0];
+      var start = ta.selectionStart;
+      var end   = ta.selectionEnd;
+      var sel   = ta.value.substring(start, end);
+      var open  = '[' + tag + ']';
+      var close = '[/' + tag + ']';
+      ta.value  = ta.value.substring(0, start) + open + sel + close + ta.value.substring(end);
+      var cursor = start + open.length + sel.length;
+      ta.setSelectionRange(sel ? cursor : start + open.length, sel ? cursor : start + open.length);
+      $ta.trigger('input').focus();
+    });
+  }
+
   function initAutoResize() {
     $(document).on('input', 'textarea[name="message"], #fme-qr-text', function () {
       this.style.height = 'auto';
@@ -707,6 +727,7 @@
     applyDropcap();
     applyStateBadges();
     initHoverCard();
+    initBBCodeToolbar();
     initAutoResize();
     initQuickReply();
     initQuickReplyRestore();
@@ -720,5 +741,4 @@
   } else {
     init();
   }
-
 }(jQuery));
