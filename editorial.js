@@ -1,8 +1,12 @@
 (function ($) {
   'use strict';
 
-  var KEY = 'fme.tweaks.v2';
-  var DEFAULTS = { dark: false, font: 'sans', density: 'compact', layout: 'table', avatar: 'round' };
+  try {
+    if (localStorage.getItem('fme.dark') === '1') {
+      document.documentElement.classList.add('fme-dark');
+      if (document.body) document.body.classList.add('fme-dark');
+    }
+  } catch(e) {}
 
   var COLORS = [
     ['#7DD3FC','#0369A1'], ['#FCA5A5','#991B1B'], ['#A7F3D0','#065F46'],
@@ -18,25 +22,6 @@
     c3: { num:'03', desc:'Prezintă tema ta, partajează snippet-uri și resurse.' },
     c4: { num:'04', desc:'Off-topic, prezentări și discuții libere.' }
   };
-
-  function loadTweaks() {
-    try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}')); }
-    catch (e) { return Object.assign({}, DEFAULTS); }
-  }
-
-  function saveTweaks(t) {
-    try { localStorage.setItem(KEY, JSON.stringify(t)); } catch (e) {}
-  }
-
-  function applyTweaks(t) {
-    var b = document.body;
-    if (!b) return;
-    b.classList.toggle('fme-dark', !!t.dark);
-    ['sans','mono'].forEach(function (v) { b.classList.toggle('fme-font-' + v, t.font === v); });
-    ['compact','regular','comfy'].forEach(function (v) { b.classList.toggle('fme-density-' + v, t.density === v); });
-    ['table','cards'].forEach(function (v) { b.classList.toggle('fme-layout-' + v, t.layout === v); });
-    ['round','square','pixel'].forEach(function (v) { b.classList.toggle('fme-avatar-' + v, t.avatar === v); });
-  }
 
   function _hash(str) {
     return (str || '?').split('').reduce(function (a, c) { return a + c.charCodeAt(0); }, 0);
@@ -449,50 +434,188 @@
     $pageBody.empty().append($new);
   }
 
-  function mountTweaksWidget() {
-    var mount = document.querySelector('.fme-tweaks-mount');
-    if (!mount || mount.dataset.fmeMounted) return;
-    mount.dataset.fmeMounted = '1';
-    var t = loadTweaks();
-    function group(key, opts, current) {
-      return '<div class="group">' + opts.map(function (o) {
-        return '<button class="' + (o[0] === current ? 'active' : '') + '" data-key="' + key + '" data-val="' + o[0] + '">' + o[1] + '</button>';
-      }).join('') + '</div>';
-    }
-    mount.classList.add('fme-tweaks');
-    mount.innerHTML = '<h3>Tweaks</h3>'
-      + group('dark',    [['off','Light'],['on','Dark']],                             t.dark ? 'on' : 'off')
-      + group('font',    [['sans','Sans'],['mono','Mono']],                           t.font)
-      + group('density', [['compact','Compact'],['regular','Normal'],['comfy','Lejer']], t.density)
-      + group('layout',  [['table','Tabel'],['cards','Carduri']],                     t.layout)
-      + group('avatar',  [['round','Rotund'],['square','Pătrat'],['pixel','Pixel']],  t.avatar);
-    mount.addEventListener('click', function (ev) {
-      var btn = ev.target.closest('button[data-key]');
-      if (!btn) return;
-      var key = btn.dataset.key, val = btn.dataset.val;
-      if (key === 'dark') t.dark = val === 'on'; else t[key] = val;
-      saveTweaks(t);
-      applyTweaks(t);
-      mount.querySelectorAll('button[data-key="' + key + '"]').forEach(function (b) {
-        b.classList.toggle('active', b.dataset.val === val);
-      });
+  function closeDropdowns() {
+    $('.fme-dropdown').removeClass('open');
+  }
+
+  function initSearchDrop() {
+    var $btn     = $('#fme-search-btn');
+    var $drop    = $('#fme-search-drop');
+    var $input   = $('#fme-search-input');
+    var $results = $('#fme-search-results');
+    if (!$btn.length) return;
+
+    var debounce, currentXHR;
+
+    $btn.on('click', function (e) {
+      e.stopPropagation();
+      var wasOpen = $drop.hasClass('open');
+      closeDropdowns();
+      if (!wasOpen) { $drop.addClass('open'); $input.focus(); }
+    });
+
+    $input.on('keydown', function (e) {
+      if (e.which === 13) {
+        var q = $(this).val().trim();
+        if (q) window.location.href = '/search?search_keywords=' + encodeURIComponent(q);
+      }
+    });
+
+    $input.on('input', function () {
+      var q = $(this).val().trim();
+      clearTimeout(debounce);
+      if (q.length < 2) { $results.empty(); return; }
+      debounce = setTimeout(function () {
+        if (currentXHR) currentXHR.abort();
+        $results.html('<div class="fme-search-status">Caut…</div>');
+        currentXHR = $.get('/search?search_keywords=' + encodeURIComponent(q) + '&show_results=topics', function (html) {
+          var $doc  = $('<div>').html(html.replace(/<script[\s\S]*?<\/script>/gi, ''));
+          var items = [];
+          $doc.find('a.topictitle').each(function () {
+            if (items.length >= 6) return false;
+            var $a   = $(this);
+            var $row = $a.closest('dl, li, tr');
+            var sub  = $row.find('.responsive-hide, .topic-poster').first().text().trim().slice(0, 60);
+            items.push({ title: $a.text().trim(), href: $a.attr('href'), sub: sub });
+          });
+          if (!items.length) { $results.html('<div class="fme-search-status">Niciun rezultat.</div>'); return; }
+          $results.html(items.map(function (it) {
+            return '<a class="fme-search-item" href="' + it.href + '">'
+              + '<div class="fme-search-item-title">' + it.title + '</div>'
+              + (it.sub ? '<div class="fme-search-item-sub">' + it.sub + '</div>' : '')
+              + '</a>';
+          }).join(''));
+        }).fail(function () { $results.html('<div class="fme-search-status">Eroare la căutare.</div>'); });
+      }, 350);
+    });
+
+    $(document).on('click', function (e) {
+      if (!$(e.target).closest('#fme-search-btn, #fme-search-drop').length) $drop.removeClass('open');
     });
   }
 
-  applyTweaks(loadTweaks());
+  function initNotifDrop() {
+    var $btn   = $('#fme-notif-btn');
+    var $drop  = $('#fme-notif-drop');
+    var $badge = $('#fme-notif-badge');
+    if (!$btn.length) return;
+
+    var pm = (typeof _userdata !== 'undefined') ? (parseInt(_userdata.user_nb_privmsg) || 0) : 0;
+    if (pm > 0) $badge.text(pm).show();
+
+    $btn.on('click', function (e) {
+      e.stopPropagation();
+      var wasOpen = $drop.hasClass('open');
+      closeDropdowns();
+      if (!wasOpen) {
+        if (!$drop.data('rendered')) {
+          $drop.data('rendered', true).html(buildNotifPanel(pm));
+        }
+        $drop.addClass('open');
+      }
+    });
+
+    $(document).on('click', function (e) {
+      if (!$(e.target).closest('#fme-notif-btn, #fme-notif-drop').length) $drop.removeClass('open');
+    });
+  }
+
+  function buildNotifPanel(pm) {
+    var h = '<div class="fme-notif-header">Activitate</div>';
+    if (pm > 0)
+      h += '<a class="fme-notif-item fme-notif-unread" href="/privmsg?folder=inbox">'
+        + pm + ' mesaj' + (pm !== 1 ? 'e' : '') + ' privat' + (pm !== 1 ? 'e' : '') + ' nou' + (pm !== 1 ? 'ă' : '')
+        + '</a>';
+    h += '<a class="fme-notif-item" href="/search?search_id=newposts">Subiecte noi de la ultima vizită</a>'
+      + '<a class="fme-notif-item" href="/search?search_id=egosearch">Subiecte la care ai participat</a>'
+      + '<a class="fme-notif-footer" href="/privmsg?folder=inbox">Inbox →</a>';
+    return h;
+  }
+
+  function initDarkToggle() {
+    var btn = document.getElementById('fme-dark-btn');
+    if (!btn) return;
+    var isDark = document.documentElement.classList.contains('fme-dark');
+    btn.textContent = isDark ? '☀' : '☾';
+    btn.addEventListener('click', function () {
+      isDark = !isDark;
+      document.documentElement.classList.toggle('fme-dark', isDark);
+      document.body.classList.toggle('fme-dark', isDark);
+      btn.textContent = isDark ? '☀' : '☾';
+      try { localStorage.setItem('fme.dark', isDark ? '1' : '0'); } catch (e) {}
+    });
+  }
+
+  function initHoverCard() {
+    var CACHE = {};
+    var $card = $('<div class="fme-hovercard">').hide().appendTo(document.body);
+    var hideTimer;
+
+    function show($anchor, d) {
+      $card.html(
+        '<div class="fme-hovercard-name">' + d.name + '</div>'
+        + (d.rank   ? '<div class="fme-hovercard-rank">'  + d.rank  + '</div>' : '')
+        + '<div class="fme-hovercard-stats">'
+        + (d.posts  ? '<span>' + d.posts  + '</span>' : '')
+        + (d.rep    ? '<span>' + d.rep    + '</span>' : '')
+        + (d.joined ? '<span>' + d.joined + '</span>' : '')
+        + '</div>'
+      );
+      var off = $anchor.offset();
+      $card.css({ top: off.top + $anchor.outerHeight() + 6, left: off.left, position: 'absolute' }).show();
+    }
+
+    function fromPost($a) {
+      var $post = $a.closest('.post');
+      if (!$post.length) return null;
+      var name = $a.text().trim();
+      if (!name) return null;
+      var rank = $post.find('[data-post-rank]').text().trim();
+      var posts = null, rep = null, joined = null;
+      $post.find('.postprofile').each(function () {
+        var t = $(this).text().trim();
+        if (/posturi/.test(t))  posts = t;
+        if (/rep/.test(t))      rep   = t;
+        if (/^din\s/.test(t))   joined = t;
+      });
+      return { name: name, rank: rank, posts: posts, rep: rep, joined: joined };
+    }
+
+    $(document)
+      .on('mouseenter', '[data-string="username"] a', function () {
+        var $a   = $(this);
+        var name = $a.text().trim();
+        clearTimeout(hideTimer);
+        if (!CACHE[name]) CACHE[name] = fromPost($a);
+        if (CACHE[name]) show($a, CACHE[name]);
+      })
+      .on('mouseleave', '[data-string="username"] a', function () {
+        hideTimer = setTimeout(function () { $card.hide(); }, 250);
+      });
+  }
+
+  function initAutoResize() {
+    $(document).on('input', 'textarea[name="message"]', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight + 2) + 'px';
+    });
+  }
 
   if (typeof _userdata !== 'undefined') {
     $.fme = new FME();
   }
 
   function init() {
-    applyTweaks(loadTweaks());
     detectPageClass();
+    initDarkToggle();
+    initSearchDrop();
+    initNotifDrop();
     injectMasthead();
     injectLoginPage();
     applyDropcap();
     applyStateBadges();
-    mountTweaksWidget();
+    initHoverCard();
+    initAutoResize();
   }
 
   if (document.readyState === 'loading') {
