@@ -698,6 +698,185 @@
     });
   }
 
+  // ── Facebook-style reactions ──────────────────────────────────────────────────
+  var REACT_EMOJI = { like: '👍', love: '❤️', haha: '😄', wow: '😮', sad: '😢', angry: '😡' };
+  var REACT_ORDER = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
+
+  // Picker open/close (shared across all posts)
+  var _pickerTimer = null;
+  function _openPicker(picker) {
+    document.querySelectorAll('.fme-react-picker.fme-picker-open').forEach(function (p) {
+      if (p !== picker) p.classList.remove('fme-picker-open');
+    });
+    picker.classList.add('fme-picker-open');
+  }
+  function _closePicker(picker) { picker.classList.remove('fme-picker-open'); }
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.fme-react-trigger')) {
+      document.querySelectorAll('.fme-react-picker.fme-picker-open').forEach(function (p) {
+        p.classList.remove('fme-picker-open');
+      });
+    }
+  });
+
+  function _renderReact(el, myVote, counts) {
+    var $el     = $(el);
+    var $btn    = $el.find('[data-react-btn]');
+    var $counts = $el.find('[data-react-counts]');
+    var $opts   = $el.find('[data-react]');
+
+    // Main button label
+    if (myVote && REACT_EMOJI[myVote]) {
+      $btn.html(REACT_EMOJI[myVote] + ' ' + myVote.charAt(0).toUpperCase() + myVote.slice(1))
+          .addClass('fme-reacted');
+    } else {
+      $btn.html('♡ Reacție').removeClass('fme-reacted');
+    }
+
+    // Highlight active option in picker
+    $opts.each(function () {
+      $(this).toggleClass('fme-opt-active', $(this).attr('data-react') === myVote);
+    });
+
+    // Counts pills
+    var pills = '';
+    REACT_ORDER.forEach(function (r) {
+      var n = (counts && counts[r]) ? counts[r] : 0;
+      if (n > 0) pills += '<span class="fme-react-count-pill"><span class="fme-pill-emoji">' + REACT_EMOJI[r] + '</span>' + n + '</span>';
+    });
+    $counts.html(pills);
+  }
+
+  function _wirePickerEvents(el, userId, onVote) {
+    var trigger = el.querySelector('.fme-react-trigger');
+    var picker  = el.querySelector('[data-react-picker]');
+    var btn     = el.querySelector('[data-react-btn]');
+    if (!trigger || !picker) return;
+
+    // Hover: open after 350ms, close after 200ms
+    trigger.addEventListener('mouseenter', function () {
+      clearTimeout(_pickerTimer);
+      _pickerTimer = setTimeout(function () { _openPicker(picker); }, 350);
+    });
+    trigger.addEventListener('mouseleave', function () {
+      clearTimeout(_pickerTimer);
+      _pickerTimer = setTimeout(function () { _closePicker(picker); }, 200);
+    });
+    picker.addEventListener('mouseenter', function () { clearTimeout(_pickerTimer); });
+    picker.addEventListener('mouseleave', function () {
+      clearTimeout(_pickerTimer);
+      _pickerTimer = setTimeout(function () { _closePicker(picker); }, 200);
+    });
+
+    // Click main btn: if already reacted → remove; else → open picker
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (btn.classList.contains('fme-reacted')) {
+        _closePicker(picker);
+        if (userId) onVote(null);
+      } else {
+        _openPicker(picker);
+      }
+    });
+
+    // Click emoji option
+    picker.querySelectorAll('[data-react]').forEach(function (opt) {
+      opt.addEventListener('click', function (e) {
+        e.stopPropagation();
+        _closePicker(picker);
+        if (userId) onVote(opt.getAttribute('data-react'));
+      });
+    });
+  }
+
+  function initLikes() {
+    if (!document.body.classList.contains('page-viewtopic')) return;
+    var apiUrl = window.FME_REACTIONS_URL || '';
+    if (!apiUrl) { initLikesLocal(); return; }
+
+    var userId = (typeof _userdata !== 'undefined' && _userdata.user_id > 0)
+      ? _userdata.user_id : null;
+    var els = document.querySelectorAll('[data-like-post]');
+    if (!els.length) return;
+
+    var ids = [];
+    els.forEach(function (el) { ids.push(el.getAttribute('data-like-post')); });
+    var url = apiUrl + '?posts=' + ids.join(',') + (userId ? '&user_id=' + userId : '');
+
+    $.getJSON(url, function (data) {
+      els.forEach(function (el) {
+        var postId = el.getAttribute('data-like-post');
+        var d      = data[postId] || { counts: {}, my_vote: null };
+
+        _renderReact(el, d.my_vote, d.counts);
+
+        _wirePickerEvents(el, userId, function (action) {
+          var prev = d.my_vote;
+          // Optimistic UI
+          if (action) {
+            if (d.counts[action]) d.counts[action]++; else d.counts[action] = 1;
+            if (prev && d.counts[prev]) d.counts[prev]--;
+          } else if (prev && d.counts[prev]) {
+            d.counts[prev]--;
+          }
+          d.my_vote = action;
+          _renderReact(el, d.my_vote, d.counts);
+
+          $.ajax({
+            url: apiUrl, method: 'POST', contentType: 'application/json',
+            data: JSON.stringify({ post_id: parseInt(postId, 10), user_id: userId, action: action }),
+            success: function (res) { d.counts = res.counts; d.my_vote = res.my_vote; _renderReact(el, d.my_vote, d.counts); },
+            error:   function ()    { d.counts = data[postId].counts; d.my_vote = prev; _renderReact(el, d.my_vote, d.counts); }
+          });
+        });
+      });
+    }).fail(function () { initLikesLocal(); });
+  }
+
+  function initLikesLocal() {
+    var stored = {};
+    try { stored = JSON.parse(localStorage.getItem('fme.reactions') || '{}'); } catch (e) {}
+    function save() { try { localStorage.setItem('fme.reactions', JSON.stringify(stored)); } catch (e) {} }
+
+    var userId = (typeof _userdata !== 'undefined' && _userdata.user_id > 0)
+      ? String(_userdata.user_id) : null;
+
+    document.querySelectorAll('[data-like-post]').forEach(function (el) {
+      var postId = el.getAttribute('data-like-post');
+      var myVote = (stored[postId] && stored[postId][userId]) || null;
+      // counts per reaction from stored
+      var counts = {};
+      if (stored[postId]) {
+        Object.keys(stored[postId]).forEach(function (uid) {
+          var r = stored[postId][uid];
+          counts[r] = (counts[r] || 0) + 1;
+        });
+      }
+
+      _renderReact(el, myVote, counts);
+
+      _wirePickerEvents(el, userId, function (action) {
+        if (!stored[postId]) stored[postId] = {};
+        var prev = myVote;
+        if (action) stored[postId][userId] = action;
+        else delete stored[postId][userId];
+        if (!Object.keys(stored[postId]).length) delete stored[postId];
+        save();
+
+        // Recompute counts
+        counts = {};
+        if (stored[postId]) {
+          Object.keys(stored[postId]).forEach(function (uid) {
+            var r = stored[postId][uid];
+            counts[r] = (counts[r] || 0) + 1;
+          });
+        }
+        myVote = action;
+        _renderReact(el, myVote, counts);
+      });
+    });
+  }
+
   function initCollapseQuotes() {
     document.querySelectorAll('.post blockquote').forEach(function (bq) {
       if (bq.scrollHeight <= 140) return;
@@ -729,6 +908,7 @@
     initHoverCard();
     initBBCodeToolbar();
     initAutoResize();
+    initLikes();
     initQuickReply();
     initQuickReplyRestore();
     initRelativeTimestamps();
