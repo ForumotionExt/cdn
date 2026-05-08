@@ -595,9 +595,101 @@
   }
 
   function initAutoResize() {
-    $(document).on('input', 'textarea[name="message"]', function () {
+    $(document).on('input', 'textarea[name="message"], #fme-qr-text', function () {
       this.style.height = 'auto';
       this.style.height = (this.scrollHeight + 2) + 'px';
+    });
+  }
+
+  function initQuickReply() {
+    var $cta    = $('#fme-reply-cta');
+    var $reply  = $('#fme-quick-reply');
+    var $text   = $('#fme-qr-text');
+    var $cancel = $('#fme-qr-cancel');
+    var $submit = $('#fme-qr-submit');
+    if (!$cta.length) return;
+
+    $cta.on('click', function () {
+      $cta.hide();
+      $reply.show();
+      $text.focus();
+    });
+
+    $cancel.on('click', function () {
+      $reply.hide();
+      $cta.show();
+      $text.val('').css('height', '');
+    });
+
+    $submit.on('click', function () {
+      var text = $text.val().trim();
+      if (!text) return false;
+      try {
+        var m = location.pathname.match(/\/t(\d+)/i);
+        sessionStorage.setItem('fme.qr.' + (m ? m[1] : '0'), text);
+      } catch (e) {}
+    });
+  }
+
+  function initQuickReplyRestore() {
+    if (!document.body.classList.contains('page-posting')) return;
+    var $ta = $('textarea[name="message"]');
+    if (!$ta.length) return;
+    try {
+      for (var i = 0; i < sessionStorage.length; i++) {
+        var k = sessionStorage.key(i);
+        if (k && k.indexOf('fme.qr.') === 0) {
+          var saved = sessionStorage.getItem(k);
+          if (saved && !$ta.val().trim()) {
+            $ta.val(saved).trigger('input');
+            sessionStorage.removeItem(k);
+          }
+          break;
+        }
+      }
+    } catch (e) {}
+  }
+
+  function initRelativeTimestamps() {
+    document.querySelectorAll('[data-post-date]').forEach(function (el) {
+      var d = _parseRoDate(el.textContent.trim());
+      if (d) el.textContent = _relativeTime(d);
+    });
+  }
+
+  function initCopyPostLink() {
+    $(document).on('click', '[data-copy-link]', function () {
+      var id  = $(this).attr('data-copy-link');
+      var url = location.href.split('#')[0] + '#p' + id;
+      var $el = $(this);
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      var orig = $el.text();
+      $el.text('✓').css('color', 'var(--fme-accent)');
+      setTimeout(function () { $el.text(orig).css('color', ''); }, 1500);
+    });
+  }
+
+  function initCollapseQuotes() {
+    document.querySelectorAll('.post blockquote').forEach(function (bq) {
+      if (bq.scrollHeight <= 140) return;
+      bq.classList.add('fme-quote-collapsed');
+      var btn = document.createElement('button');
+      btn.className = 'fme-quote-expand';
+      btn.textContent = 'Arată tot ↓';
+      btn.addEventListener('click', function () {
+        bq.classList.remove('fme-quote-collapsed');
+        btn.remove();
+      });
+      bq.parentNode.insertBefore(btn, bq.nextSibling);
     });
   }
 
@@ -616,6 +708,11 @@
     applyStateBadges();
     initHoverCard();
     initAutoResize();
+    initQuickReply();
+    initQuickReplyRestore();
+    initRelativeTimestamps();
+    initCopyPostLink();
+    initCollapseQuotes();
   }
 
   if (document.readyState === 'loading') {
