@@ -823,7 +823,7 @@
           _renderReact(el, d.my_vote, d.counts);
 
           $.ajax({
-            url: apiUrl, method: 'POST', contentType: 'application/json',
+            url: apiUrl, type: 'POST', contentType: 'application/json',
             data: JSON.stringify({ post_id: parseInt(postId, 10), user_id: userId, action: action }),
             success: function (res) { d.counts = res.counts; d.my_vote = res.my_vote; _renderReact(el, d.my_vote, d.counts); },
             error:   function ()    { d.counts = data[postId].counts; d.my_vote = prev; _renderReact(el, d.my_vote, d.counts); }
