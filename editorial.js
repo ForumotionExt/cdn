@@ -698,110 +698,173 @@
     });
   }
 
-  // ── Facebook-style reactions ──────────────────────────────────────────────────
-  var REACT_EMOJI = {
-    like:  String.fromCodePoint(0x1F44D),
-    love:  String.fromCodePoint(0x2764) + String.fromCodePoint(0xFE0F),
-    haha:  String.fromCodePoint(0x1F604),
-    wow:   String.fromCodePoint(0x1F62E),
-    sad:   String.fromCodePoint(0x1F622),
-    angry: String.fromCodePoint(0x1F621)
-  };
-  var REACT_ORDER = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
+  // ── Reaction system ───────────────────────────────────────────────────────────
+  var REACTIONS = [
+    { key: 'love',  emoji: String.fromCodePoint(0x2764),  label: 'Apreciez' },
+    { key: 'fire',  emoji: String.fromCodePoint(0x1F525), label: 'Tare' },
+    { key: 'idea',  emoji: String.fromCodePoint(0x1F4A1), label: 'Util' },
+    { key: 'clap',  emoji: String.fromCodePoint(0x1F44F), label: 'Bravo' },
+    { key: 'think', emoji: String.fromCodePoint(0x1F914), label: 'Interesant' },
+  ];
+  var REACT_BY_KEY = {};
+  REACTIONS.forEach(function(r) { REACT_BY_KEY[r.key] = r; });
 
-  // Picker open/close (shared across all posts)
-  var _pickerTimer = null;
-  function _openPicker(picker) {
-    document.querySelectorAll('.fme-react-picker.fme-picker-open').forEach(function (p) {
-      if (p !== picker) p.classList.remove('fme-picker-open');
-    });
-    picker.classList.add('fme-picker-open');
+  function _rEsc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  function _closePicker(picker) { picker.classList.remove('fme-picker-open'); }
-  document.addEventListener('click', function (e) {
-    if (!e.target.closest('.fme-react-trigger')) {
-      document.querySelectorAll('.fme-react-picker.fme-picker-open').forEach(function (p) {
-        p.classList.remove('fme-picker-open');
-      });
+
+  // Close all pickers + dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('[data-like-post]')) {
+      document.querySelectorAll('.fme-react-picker.fme-picker-open').forEach(function(p) { p.classList.remove('fme-picker-open'); });
+      document.querySelectorAll('.fme-react-dropdown').forEach(function(d) { d.remove(); });
     }
   });
 
-  function _renderReact(el, myVote, counts, users) {
-    var $el     = $(el);
-    var $btn    = $el.find('[data-react-btn]');
-    var $counts = $el.find('[data-react-counts]');
-    var $opts   = $el.find('[data-react]');
-
-    // Main button label
-    if (myVote && REACT_EMOJI[myVote]) {
-      $btn.html(REACT_EMOJI[myVote] + ' ' + myVote.charAt(0).toUpperCase() + myVote.slice(1))
-          .addClass('fme-reacted');
-    } else {
-      $btn.html('♡ Reacție').removeClass('fme-reacted');
-    }
-
-    // Highlight active option in picker
-    $opts.each(function () {
-      $(this).toggleClass('fme-opt-active', $(this).attr('data-react') === myVote);
+  function _stackUsers(users) {
+    var seen = [];
+    REACTIONS.forEach(function(r) {
+      (users[r.key] || []).forEach(function(u) { if (seen.indexOf(u) < 0) seen.push(u); });
     });
-
-    // Counts pills
-    var pills = '';
-    var total = 0;
-    REACT_ORDER.forEach(function (r) {
-      var n = (counts && counts[r]) ? counts[r] : 0;
-      total += n;
-      if (n > 0) {
-        var userList = (users && users[r] && users[r].length)
-          ? users[r].slice(0, 8).join(', ') + (users[r].length > 8 ? ' +' + (users[r].length - 8) : '')
-          : '';
-        pills += '<span class="fme-react-count-pill" title="' + userList + '">'
-               + '<span class="fme-pill-emoji">' + REACT_EMOJI[r] + '</span>' + n + '</span>';
-      }
-    });
-    if (total > 0) pills += '<span class="fme-react-total">' + total + ' reacții</span>';
-    $counts.html(pills);
+    return seen;
   }
 
-  function _wirePickerEvents(el, userId, onVote) {
-    var trigger = el.querySelector('.fme-react-trigger');
-    var picker  = el.querySelector('[data-react-picker]');
-    var btn     = el.querySelector('[data-react-btn]');
-    if (!trigger || !picker) return;
+  // Render avatar stack + per-reaction chips
+  function _renderSummary(el, myVote, counts, users, onTabOpen) {
+    var active = REACTIONS.filter(function(r) { return (counts[r.key] || 0) > 0; });
+    var total  = active.reduce(function(a, r) { return a + counts[r.key]; }, 0);
+    var stack  = _stackUsers(users);
+    var $sum   = $(el).find('[data-react-summary]');
+    var h      = '';
 
-    // Hover: open after 350ms, close after 200ms
-    trigger.addEventListener('mouseenter', function () {
-      clearTimeout(_pickerTimer);
-      _pickerTimer = setTimeout(function () { _openPicker(picker); }, 350);
-    });
-    trigger.addEventListener('mouseleave', function () {
-      clearTimeout(_pickerTimer);
-      _pickerTimer = setTimeout(function () { _closePicker(picker); }, 200);
-    });
-    picker.addEventListener('mouseenter', function () { clearTimeout(_pickerTimer); });
-    picker.addEventListener('mouseleave', function () {
-      clearTimeout(_pickerTimer);
-      _pickerTimer = setTimeout(function () { _closePicker(picker); }, 200);
-    });
-
-    // Click main btn: if already reacted → remove; else → open picker
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (btn.classList.contains('fme-reacted')) {
-        _closePicker(picker);
-        if (userId) onVote(null);
-      } else {
-        _openPicker(picker);
-      }
-    });
-
-    // Click emoji option
-    picker.querySelectorAll('[data-react]').forEach(function (opt) {
-      opt.addEventListener('click', function (e) {
-        e.stopPropagation();
-        _closePicker(picker);
-        if (userId) onVote(opt.getAttribute('data-react'));
+    if (total > 0) {
+      h += '<button class="fme-react-total-chip" data-total-chip>';
+      h += '<div class="fme-avatar-stack">';
+      stack.slice(0, 3).forEach(function(u, i) {
+        h += '<div class="fme-avatar-stack-item" style="margin-left:' + (i ? '-6px' : '0') + '" data-s-av="' + _rEsc(u) + '"></div>';
       });
+      h += '</div><span class="fme-react-total-count">' + total + '</span></button>';
+
+      active.forEach(function(r) {
+        var mine = myVote === r.key;
+        h += '<div class="fme-react-chip-wrap" style="position:relative">'
+          + '<button class="fme-react-chip' + (mine ? ' mine' : '') + '" data-chip="' + r.key + '">'
+          + '<span style="font-size:13px;line-height:1">' + r.emoji + '</span>'
+          + '<span style="font-size:12px;font-weight:600;color:' + (mine ? 'var(--fme-accent)' : 'var(--fme-text)') + '">' + counts[r.key] + '</span>'
+          + '</button></div>';
+      });
+    }
+
+    $sum.html(h);
+
+    $sum.find('[data-s-av]').each(function() { $.fme.avatar($(this), $(this).attr('data-s-av')); });
+
+    $sum.find('[data-total-chip]').on('click', function(e) { e.stopPropagation(); onTabOpen('all'); });
+
+    $sum.find('[data-chip]').each(function() {
+      var key  = $(this).attr('data-chip');
+      var r    = REACT_BY_KEY[key];
+      var $btn = $(this);
+      var $tip = null;
+
+      $btn.on('click', function(e) {
+        e.stopPropagation();
+        if ($tip) { $tip.remove(); $tip = null; }
+        onTabOpen(key);
+      });
+      $btn.on('mouseenter', function() {
+        var list = (users[key] || []).slice(0, 5);
+        var more = (users[key] || []).length - list.length;
+        $tip = $('<div class="fme-react-tooltip"><div class="fme-react-tooltip-label">' + r.label
+          + '</div><div>' + list.map(_rEsc).join(', ') + (more > 0 ? ' și alți ' + more : '') + '</div></div>').appendTo($btn.parent());
+      }).on('mouseleave', function() { if ($tip) { $tip.remove(); $tip = null; } });
+    });
+  }
+
+  // Render dropdown panel (tabs + user list)
+  function _showDropdown(el, myVote, counts, users, initTab, onTabChange) {
+    $(el).find('.fme-react-dropdown').remove();
+    var active = REACTIONS.filter(function(r) { return (counts[r.key] || 0) > 0; });
+    var total  = active.reduce(function(a, r) { return a + counts[r.key]; }, 0);
+    var tab    = initTab;
+    var $drop  = $('<div class="fme-react-dropdown"></div>').appendTo(el);
+
+    function redraw() {
+      var h = '<div class="fme-react-dropdown-tabs">'
+        + '<button class="fme-react-dropdown-tab' + (tab === 'all' ? ' active' : '') + '" data-dtab="all">Toate <span style="opacity:.6">' + total + '</span></button>';
+      active.forEach(function(r) {
+        h += '<button class="fme-react-dropdown-tab' + (tab === r.key ? ' active' : '') + '" data-dtab="' + r.key + '" title="' + r.label + '">'
+          + '<span style="font-size:13px">' + r.emoji + '</span><span style="opacity:.7">' + counts[r.key] + '</span></button>';
+      });
+      h += '</div>';
+
+      var rows = [];
+      if (tab === 'all') {
+        var seen = {};
+        active.forEach(function(r) {
+          (users[r.key] || []).forEach(function(u) {
+            if (!seen[u]) seen[u] = [];
+            seen[u].push(r);
+          });
+        });
+        Object.keys(seen).forEach(function(u) { rows.push({ user: u, reactions: seen[u] }); });
+      } else {
+        var rx = REACT_BY_KEY[tab];
+        if (rx) (users[tab] || []).forEach(function(u) { rows.push({ user: u, reactions: [rx] }); });
+      }
+
+      h += '<div class="fme-react-dropdown-list">';
+      if (!rows.length) {
+        h += '<div style="padding:16px;text-align:center;color:var(--fme-faint);font-size:12px;font-style:italic">Niciun utilizator încă.</div>';
+      } else {
+        rows.forEach(function(row) {
+          h += '<div class="fme-react-dropdown-row">'
+            + '<div class="fme-react-dropdown-avatar" data-d-av="' + _rEsc(row.user) + '"></div>'
+            + '<div style="flex:1;min-width:0"><div class="fme-react-dropdown-name">' + _rEsc(row.user) + '</div>'
+            + '<div class="fme-react-dropdown-subreact">' + row.reactions.map(function(r) { return r.label; }).join(' · ') + '</div></div>'
+            + '<div style="font-size:14px;letter-spacing:1px">' + row.reactions.map(function(r) { return r.emoji; }).join('') + '</div>'
+            + '</div>';
+        });
+      }
+      h += '</div>';
+      $drop.html(h);
+
+      $drop.find('[data-d-av]').each(function() { $.fme.avatar($(this), $(this).attr('data-d-av')); });
+      $drop.find('[data-dtab]').on('click', function(e) {
+        e.stopPropagation();
+        tab = $(this).attr('data-dtab');
+        onTabChange(tab);
+        redraw();
+      });
+      $drop.on('click', function(e) { e.stopPropagation(); });
+    }
+
+    redraw();
+    return $drop;
+  }
+
+  // Wire "+" button + picker
+  function _wirePicker(el, userId, myVoteGetter, onVote) {
+    var picker = el.querySelector('[data-react-picker]');
+    var $btn   = $(el).find('[data-react-add-btn]');
+    if (!picker) return;
+
+    $btn.on('click', function(e) {
+      e.stopPropagation();
+      $(el).find('.fme-react-dropdown').remove();
+      picker.classList.toggle('fme-picker-open');
+      $btn.toggleClass('active', picker.classList.contains('fme-picker-open'));
+      // highlight current reaction in picker
+      $(picker).find('[data-react]').each(function() {
+        $(this).toggleClass('fme-opt-active', $(this).attr('data-react') === myVoteGetter());
+      });
+    });
+
+    $(picker).find('[data-react]').on('click', function(e) {
+      e.stopPropagation();
+      picker.classList.remove('fme-picker-open');
+      $btn.removeClass('active');
+      if (userId) onVote($(this).attr('data-react'));
     });
   }
 
@@ -816,79 +879,87 @@
     if (!els.length) return;
 
     var ids = [];
-    els.forEach(function (el) { ids.push(el.getAttribute('data-like-post')); });
-    var url = apiUrl + '?posts=' + ids.join(',') + (userId ? '&user_id=' + userId : '');
+    els.forEach(function(el) { ids.push(el.getAttribute('data-like-post')); });
 
-    $.getJSON(url, function (data) {
-      els.forEach(function (el) {
+    $.getJSON(apiUrl + '?posts=' + ids.join(',') + (userId ? '&user_id=' + userId : ''), function(data) {
+      els.forEach(function(el) {
         var postId = el.getAttribute('data-like-post');
         var d      = data[postId] || { counts: {}, users: {}, my_vote: null };
+        var openTab = null;
 
-        _renderReact(el, d.my_vote, d.counts, d.users);
+        function redraw() {
+          _renderSummary(el, d.my_vote, d.counts, d.users, function(tab) {
+            if (openTab === tab) { openTab = null; $(el).find('.fme-react-dropdown').remove(); }
+            else { openTab = tab; _showDropdown(el, d.my_vote, d.counts, d.users, tab, function(t) { openTab = t; }); }
+          });
+        }
 
-        _wirePickerEvents(el, userId, function (action) {
+        redraw();
+
+        _wirePicker(el, userId, function() { return d.my_vote; }, function(action) {
           var prev = d.my_vote;
-          // Optimistic counts
+          action = (action === prev) ? null : action; // toggle off
           if (action) {
-            if (d.counts[action]) d.counts[action]++; else d.counts[action] = 1;
-            if (prev && d.counts[prev]) d.counts[prev]--;
-          } else if (prev && d.counts[prev]) {
-            d.counts[prev]--;
+            d.counts[action] = (d.counts[action] || 0) + 1;
+            if (prev) { d.counts[prev] = Math.max(0, (d.counts[prev] || 1) - 1); if (!d.counts[prev]) delete d.counts[prev]; }
+            if (userName) {
+              if (!d.users[action]) d.users[action] = [];
+              if (d.users[action].indexOf(userName) < 0) d.users[action].push(userName);
+              if (prev && d.users[prev]) d.users[prev] = d.users[prev].filter(function(u) { return u !== userName; });
+            }
+          } else if (prev) {
+            d.counts[prev] = Math.max(0, (d.counts[prev] || 1) - 1);
+            if (!d.counts[prev]) delete d.counts[prev];
+            if (userName && d.users[prev]) d.users[prev] = d.users[prev].filter(function(u) { return u !== userName; });
           }
-          d.my_vote = action;
-          _renderReact(el, d.my_vote, d.counts, d.users);
+          d.my_vote = action; openTab = null; redraw();
 
           $.ajax({
             url: apiUrl, type: 'POST', contentType: 'application/json',
             data: JSON.stringify({ post_id: parseInt(postId, 10), user_id: userId, username: userName, action: action }),
-            success: function (res) { d.counts = res.counts; d.users = res.users; d.my_vote = res.my_vote; _renderReact(el, d.my_vote, d.counts, d.users); },
-            error:   function ()    { d.counts = data[postId].counts; d.users = data[postId].users; d.my_vote = prev; _renderReact(el, d.my_vote, d.counts, d.users); }
+            success: function(res) { d.counts = res.counts; d.users = res.users; d.my_vote = res.my_vote; openTab = null; redraw(); },
+            error:   function()    { var orig = data[postId] || {}; d.counts = orig.counts || {}; d.users = orig.users || {}; d.my_vote = prev; openTab = null; redraw(); }
           });
         });
       });
-    }).fail(function () { initLikesLocal(); });
+    }).fail(function() { initLikesLocal(); });
   }
 
   function initLikesLocal() {
     var stored = {};
-    try { stored = JSON.parse(localStorage.getItem('fme.reactions') || '{}'); } catch (e) {}
-    function save() { try { localStorage.setItem('fme.reactions', JSON.stringify(stored)); } catch (e) {} }
+    try { stored = JSON.parse(localStorage.getItem('fme.reactions') || '{}'); } catch(e) {}
+    function save() { try { localStorage.setItem('fme.reactions', JSON.stringify(stored)); } catch(e) {} }
+    var userId = (typeof _userdata !== 'undefined' && _userdata.user_id > 0) ? String(_userdata.user_id) : null;
 
-    var userId = (typeof _userdata !== 'undefined' && _userdata.user_id > 0)
-      ? String(_userdata.user_id) : null;
-
-    document.querySelectorAll('[data-like-post]').forEach(function (el) {
+    document.querySelectorAll('[data-like-post]').forEach(function(el) {
       var postId = el.getAttribute('data-like-post');
-      var myVote = (stored[postId] && stored[postId][userId]) || null;
-      // counts per reaction from stored
-      var counts = {};
+      var myVote = (stored[postId] && userId && stored[postId][userId]) || null;
+      var counts = {}, users = {}, openTab = null;
       if (stored[postId]) {
-        Object.keys(stored[postId]).forEach(function (uid) {
+        Object.keys(stored[postId]).forEach(function(uid) {
           var r = stored[postId][uid];
           counts[r] = (counts[r] || 0) + 1;
         });
       }
 
-      _renderReact(el, myVote, counts);
+      function redraw() {
+        _renderSummary(el, myVote, counts, users, function(tab) {
+          if (openTab === tab) { openTab = null; $(el).find('.fme-react-dropdown').remove(); }
+          else { openTab = tab; _showDropdown(el, myVote, counts, users, tab, function(t) { openTab = t; }); }
+        });
+      }
 
-      _wirePickerEvents(el, userId, function (action) {
+      redraw();
+
+      _wirePicker(el, userId, function() { return myVote; }, function(action) {
         if (!stored[postId]) stored[postId] = {};
-        var prev = myVote;
-        if (action) stored[postId][userId] = action;
-        else delete stored[postId][userId];
+        action = (action === myVote) ? null : action;
+        if (action) stored[postId][userId] = action; else delete stored[postId][userId];
         if (!Object.keys(stored[postId]).length) delete stored[postId];
         save();
-
-        // Recompute counts
         counts = {};
-        if (stored[postId]) {
-          Object.keys(stored[postId]).forEach(function (uid) {
-            var r = stored[postId][uid];
-            counts[r] = (counts[r] || 0) + 1;
-          });
-        }
-        myVote = action;
-        _renderReact(el, myVote, counts);
+        if (stored[postId]) Object.keys(stored[postId]).forEach(function(uid) { var r = stored[postId][uid]; counts[r] = (counts[r] || 0) + 1; });
+        myVote = action; openTab = null; redraw();
       });
     });
   }
@@ -937,5 +1008,4 @@
   } else {
     init();
   }
-
 }(jQuery));
