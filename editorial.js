@@ -699,7 +699,14 @@
   }
 
   // ── Facebook-style reactions ──────────────────────────────────────────────────
-  var REACT_EMOJI = { like: '👍', love: '❤️', haha: '😄', wow: '😮', sad: '😢', angry: '😡' };
+  var REACT_EMOJI = {
+    like:  String.fromCodePoint(0x1F44D),
+    love:  String.fromCodePoint(0x2764) + String.fromCodePoint(0xFE0F),
+    haha:  String.fromCodePoint(0x1F604),
+    wow:   String.fromCodePoint(0x1F62E),
+    sad:   String.fromCodePoint(0x1F622),
+    angry: String.fromCodePoint(0x1F621)
+  };
   var REACT_ORDER = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
 
   // Picker open/close (shared across all posts)
@@ -719,7 +726,7 @@
     }
   });
 
-  function _renderReact(el, myVote, counts) {
+  function _renderReact(el, myVote, counts, users) {
     var $el     = $(el);
     var $btn    = $el.find('[data-react-btn]');
     var $counts = $el.find('[data-react-counts]');
@@ -740,10 +747,19 @@
 
     // Counts pills
     var pills = '';
+    var total = 0;
     REACT_ORDER.forEach(function (r) {
       var n = (counts && counts[r]) ? counts[r] : 0;
-      if (n > 0) pills += '<span class="fme-react-count-pill"><span class="fme-pill-emoji">' + REACT_EMOJI[r] + '</span>' + n + '</span>';
+      total += n;
+      if (n > 0) {
+        var userList = (users && users[r] && users[r].length)
+          ? users[r].slice(0, 8).join(', ') + (users[r].length > 8 ? ' +' + (users[r].length - 8) : '')
+          : '';
+        pills += '<span class="fme-react-count-pill" title="' + userList + '">'
+               + '<span class="fme-pill-emoji">' + REACT_EMOJI[r] + '</span>' + n + '</span>';
+      }
     });
+    if (total > 0) pills += '<span class="fme-react-total">' + total + ' reacții</span>';
     $counts.html(pills);
   }
 
@@ -794,8 +810,8 @@
     var apiUrl = window.FME_REACTIONS_URL || '';
     if (!apiUrl) { initLikesLocal(); return; }
 
-    var userId = (typeof _userdata !== 'undefined' && _userdata.user_id > 0)
-      ? _userdata.user_id : null;
+    var userId   = (typeof _userdata !== 'undefined' && _userdata.user_id > 0) ? _userdata.user_id : null;
+    var userName = (typeof _userdata !== 'undefined' && _userdata.username)    ? _userdata.username : null;
     var els = document.querySelectorAll('[data-like-post]');
     if (!els.length) return;
 
@@ -806,13 +822,13 @@
     $.getJSON(url, function (data) {
       els.forEach(function (el) {
         var postId = el.getAttribute('data-like-post');
-        var d      = data[postId] || { counts: {}, my_vote: null };
+        var d      = data[postId] || { counts: {}, users: {}, my_vote: null };
 
-        _renderReact(el, d.my_vote, d.counts);
+        _renderReact(el, d.my_vote, d.counts, d.users);
 
         _wirePickerEvents(el, userId, function (action) {
           var prev = d.my_vote;
-          // Optimistic UI
+          // Optimistic counts
           if (action) {
             if (d.counts[action]) d.counts[action]++; else d.counts[action] = 1;
             if (prev && d.counts[prev]) d.counts[prev]--;
@@ -820,13 +836,13 @@
             d.counts[prev]--;
           }
           d.my_vote = action;
-          _renderReact(el, d.my_vote, d.counts);
+          _renderReact(el, d.my_vote, d.counts, d.users);
 
           $.ajax({
             url: apiUrl, type: 'POST', contentType: 'application/json',
-            data: JSON.stringify({ post_id: parseInt(postId, 10), user_id: userId, action: action }),
-            success: function (res) { d.counts = res.counts; d.my_vote = res.my_vote; _renderReact(el, d.my_vote, d.counts); },
-            error:   function ()    { d.counts = data[postId].counts; d.my_vote = prev; _renderReact(el, d.my_vote, d.counts); }
+            data: JSON.stringify({ post_id: parseInt(postId, 10), user_id: userId, username: userName, action: action }),
+            success: function (res) { d.counts = res.counts; d.users = res.users; d.my_vote = res.my_vote; _renderReact(el, d.my_vote, d.counts, d.users); },
+            error:   function ()    { d.counts = data[postId].counts; d.users = data[postId].users; d.my_vote = prev; _renderReact(el, d.my_vote, d.counts, d.users); }
           });
         });
       });
@@ -921,4 +937,5 @@
   } else {
     init();
   }
+
 }(jQuery));
