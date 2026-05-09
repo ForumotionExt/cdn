@@ -747,7 +747,7 @@
 
       active.forEach(function(r) {
         var mine = myVote === r.key;
-        h += '<div class="fme-react-chip-wrap" style="position:relative">'
+        h += '<div class="fme-react-chip-wrap">'
           + '<button class="fme-react-chip' + (mine ? ' mine' : '') + '" data-chip="' + r.key + '">'
           + '<span style="font-size:13px;line-height:1">' + r.emoji + '</span>'
           + '<span style="font-size:12px;font-weight:600;color:' + (mine ? 'var(--fme-accent)' : 'var(--fme-text)') + '">' + counts[r.key] + '</span>'
@@ -856,7 +856,8 @@
       $btn.toggleClass('active', picker.classList.contains('fme-picker-open'));
       // highlight current reaction in picker
       $(picker).find('[data-react]').each(function() {
-        $(this).toggleClass('fme-opt-active', $(this).attr('data-react') === myVoteGetter());
+        var key = ($(this).attr('data-react') || '').replace(/^"+|"+$/g, '');
+        $(this).toggleClass('fme-opt-active', key === myVoteGetter());
       });
     });
 
@@ -864,7 +865,7 @@
       e.stopPropagation();
       picker.classList.remove('fme-picker-open');
       $btn.removeClass('active');
-      if (userId) onVote($(this).attr('data-react'));
+      if (userId) onVote(($(this).attr('data-react') || '').replace(/^"+|"+$/g, ''));
     });
   }
 
