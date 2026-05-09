@@ -879,12 +879,14 @@
     var els = document.querySelectorAll('[data-like-post]');
     if (!els.length) return;
 
+    function _pid(el) { return (el.getAttribute('data-like-post') || '').replace(/^"+|"+$/g, ''); }
+
     var ids = [];
-    els.forEach(function(el) { ids.push(el.getAttribute('data-like-post')); });
+    els.forEach(function(el) { var id = parseInt(_pid(el), 10); if (id > 0) ids.push(id); });
 
     $.getJSON(apiUrl + '?posts=' + ids.join(',') + (userId ? '&user_id=' + userId : ''), function(data) {
       els.forEach(function(el) {
-        var postId = el.getAttribute('data-like-post');
+        var postId = _pid(el);
         var d      = data[postId] || { counts: {}, users: {}, my_vote: null };
         var openTab = null;
 
@@ -933,7 +935,7 @@
     var userId = (typeof _userdata !== 'undefined' && _userdata.user_id > 0) ? String(_userdata.user_id) : null;
 
     document.querySelectorAll('[data-like-post]').forEach(function(el) {
-      var postId = el.getAttribute('data-like-post');
+      var postId = (el.getAttribute('data-like-post') || '').replace(/^"+|"+$/g, '');
       var myVote = (stored[postId] && userId && stored[postId][userId]) || null;
       var counts = {}, users = {}, openTab = null;
       if (stored[postId]) {
@@ -1009,4 +1011,5 @@
   } else {
     init();
   }
+  console.log('updated');
 }(jQuery));
